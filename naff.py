@@ -21,7 +21,10 @@ except ImportError:
 import scipy.optimize as so
 from scipy.integrate import simps
 
-__all__ = ['NAFF', 'poincare_polar']
+# Project
+from .core import classify_orbit, align_circulation_with_z
+
+__all__ = ['NAFF', 'poincare_polar', 'orbit_to_freqs']
 
 def hanning(x):
     return 1 + np.cos(x)
@@ -443,3 +446,64 @@ class NAFF(object):
     def find_actions(self):
         """ Reconstruct approximations to the actions using Percivals equation """
         pass
+
+def orbit_to_freqs(t, w, force_box=False, **kwargs):
+    """
+    Compute the fundamental frequencies of an orbit, ``w``. If not forced, this
+    function tries to figure out whether the input orbit is a tube or box orbit and
+    then uses the appropriate set of coordinates (Poincaré polar coordinates for tube,
+    ordinary Cartesian for box). Any extra keyword arguments (``kwargs``) are passed
+    to `NAFF.find_fundamental_frequencies`.
+
+    Parameters
+    ----------
+    t : array_like
+        Array of times.
+    w : array_like
+        The orbit to analyze. Should have shape (len(t),6).
+    force_box : bool (optional)
+        Force the routine to assume the orbit is a box orbit. Default is ``False``.
+    **kwargs
+        Any extra keyword arguments are passed to `NAFF.find_fundamental_frequencies`.
+
+    """
+
+    if w.ndim == 3:
+        # remove extra length-1 dimension (assumed to be axis=1)
+        w = w[:,0]
+
+    # now get other frequencies
+    if force_box:
+        is_tube = False
+    else:
+        circ = classify_orbit(w)
+        is_tube = np.any(circ)
+
+    naff = NAFF(t)
+
+    if is_tube:
+        # need to flip coordinates until circulation is around z axis
+        new_ws = align_circulation_with_z(w, circ[0])
+        # TODO: does the above always return a 3D array?
+
+        fs = poincare_polar(new_ws[:,0])
+        try:
+            logger.info('Solving for Rφz frequencies...')
+            fRphiz,d,ixes = naff.find_fundamental_frequencies(fs, **kwargs)
+        except:
+            fRphiz = np.ones(3)*np.nan
+
+        freqs = fRphiz
+
+    else:
+        # first get x,y,z frequencies
+        logger.info('Solving for XYZ frequencies...')
+        fs = [(w[:,j] + 1j*w[:,j+3]) for j in range(3)]
+        try:
+            fxyz,d,ixes = naff.find_fundamental_frequencies(fs, **kwargs)
+        except:
+            fxyz = np.ones(3)*np.nan
+
+        freqs = fxyz
+
+    return freqs, is_tube
