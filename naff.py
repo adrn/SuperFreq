@@ -505,4 +505,4 @@ def orbit_to_freqs(t, w, force_box=False, **kwargs):
 
         freqs = fxyz
 
-    return freqs, is_tube
+    return freqs, d, is_tube
