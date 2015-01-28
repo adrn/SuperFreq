@@ -483,10 +483,9 @@ def orbit_to_freqs(t, w, force_box=False, **kwargs):
 
     if is_tube:
         # need to flip coordinates until circulation is around z axis
-        new_ws = align_circulation_with_z(w, circ[0])
-        # TODO: does the above always return a 3D array?
+        new_ws = align_circulation_with_z(w, circ)
 
-        fs = poincare_polar(new_ws[:,0])
+        fs = poincare_polar(new_ws)
         try:
             logger.info('Solving for Rφz frequencies...')
             fRphiz,d,ixes = naff.find_fundamental_frequencies(fs, **kwargs)
