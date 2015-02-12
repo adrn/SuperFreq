@@ -153,7 +153,7 @@ class NAFF(object):
             return -(ans*signx*signo)/(2.*self.T)
 
         w = np.linspace(0, 1, 50)
-        phi_vals = np.array([phi_w(ww) for ww in w])
+        phi_vals = np.array([phi_w(ww for ww in w)])
         phi_ix = phi_vals.argmin()
 
         if np.all(np.abs(phi_vals) < 1E-10):
@@ -447,7 +447,7 @@ class NAFF(object):
         """ Reconstruct approximations to the actions using Percivals equation """
         pass
 
-def orbit_to_freqs(t, w, force_box=False, **kwargs):
+def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
     """
     Compute the fundamental frequencies of an orbit, ``w``. If not forced, this
     function tries to figure out whether the input orbit is a tube or box orbit and
@@ -463,6 +463,8 @@ def orbit_to_freqs(t, w, force_box=False, **kwargs):
         The orbit to analyze. Should have shape (len(t),6).
     force_box : bool (optional)
         Force the routine to assume the orbit is a box orbit. Default is ``False``.
+    silently_fail : bool (optional)
+        Return NaN's and None's if NAFF fails, rather than raising an exception.
     **kwargs
         Any extra keyword arguments are passed to `NAFF.find_fundamental_frequencies`.
 
@@ -481,16 +483,22 @@ def orbit_to_freqs(t, w, force_box=False, **kwargs):
 
     naff = NAFF(t)
 
+    d = None
+    ixes = None
     if is_tube:
         # need to flip coordinates until circulation is around z axis
         new_ws = align_circulation_with_z(w, circ)
 
         fs = poincare_polar(new_ws)
-        try:
+        if silently_fail:
+            try:
+                logger.info('Solving for Rφz frequencies...')
+                fRphiz,d,ixes = naff.find_fundamental_frequencies(fs, **kwargs)
+            except:
+                fRphiz = np.ones(3)*np.nan
+        else:
             logger.info('Solving for Rφz frequencies...')
             fRphiz,d,ixes = naff.find_fundamental_frequencies(fs, **kwargs)
-        except:
-            fRphiz = np.ones(3)*np.nan
 
         freqs = fRphiz
 
@@ -498,10 +506,14 @@ def orbit_to_freqs(t, w, force_box=False, **kwargs):
         # first get x,y,z frequencies
         logger.info('Solving for XYZ frequencies...')
         fs = [(w[:,j] + 1j*w[:,j+3]) for j in range(3)]
-        try:
+
+        if silently_fail:
+            try:
+                fxyz,d,ixes = naff.find_fundamental_frequencies(fs, **kwargs)
+            except:
+                fxyz = np.ones(3)*np.nan
+        else:
             fxyz,d,ixes = naff.find_fundamental_frequencies(fs, **kwargs)
-        except:
-            fxyz = np.ones(3)*np.nan
 
         freqs = fxyz
 
