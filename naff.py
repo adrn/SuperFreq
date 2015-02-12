@@ -103,11 +103,13 @@ class NAFF(object):
         omegas = 2*np.pi*fftfreq(f.size, self.t[1]-self.t[0])
         logger.log(0, "...done. Took {} seconds to FFT.".format(time.time()-t1))
 
-        # plot the FFT
-        # plt.clf()
-        # plt.plot(omegas, fff.real, marker=None)
+        # # plot the FFT
+        # import matplotlib.pyplot as plt
+        # plt.figure(figsize=(12,8))
+        # plt.semilogx(omegas, fff.real, marker=None)
+        # plt.xlim(1E-3, 1E-1)
         # plt.show()
-        #sys.exit(0)
+        # sys.exit(0)
 
         A = 1./np.sqrt(ndata - 1.)
         xf = A * fff.real * (-1)**np.arange(ndata)
@@ -119,7 +121,7 @@ class NAFF(object):
         wmax = np.max(xyf_abs, axis=0).argmax()
         if xf[wmax] != 0.:
             signx = np.sign(xf[wmax])
-            signy = np.sign(xf[wmax])
+            signy = np.sign(yf[wmax])
         else:
             # return early -- "this may be an axial or planar orbit"
             return 0.
@@ -150,10 +152,11 @@ class NAFF(object):
             # real part of integrand of Eq. 12
             zreal = self.chi * (xf*np.cos(w*self.tz) + yf*np.sin(w*self.tz))
             ans = simps(zreal, x=self.tz)
-            return -(ans*signx*signo)/(2.*self.T)
+            # return -(ans*signx*signo)/(2.*self.T)
+            return -np.abs(ans/(2.*self.T))
 
         w = np.linspace(0, 1, 50)
-        phi_vals = np.array([phi_w(ww for ww in w)])
+        phi_vals = np.array([phi_w(ww) for ww in w])
         phi_ix = phi_vals.argmin()
 
         if np.all(np.abs(phi_vals) < 1E-10):
@@ -167,6 +170,20 @@ class NAFF(object):
         freq,fx,its,imode,smode = res
         freq = invtransform(freq)
 
+        # -------------------------------------------------------------
+        # import uuid
+        # import matplotlib.pyplot as plt
+        # plt.figure(figsize=(12,8))
+        # w = np.linspace(0, 1, 100)
+        # plt.plot(invtransform(w), np.array([phi_w(ww) for ww in w]))
+        # plt.axvline(freq)
+        # plt.axvline(invtransform(init_w), linestyle='dashed')
+        # plt.title(str(imode))
+        # plt.savefig("/Users/adrian/Downloads/{}.png".format(uuid.uuid4()))
+        # plt.show()
+        # sys.exit(0)
+        # -------------------------------------------------------------
+
         # failed by starting at minimum, try instead starting from middle
         if imode != 0:
             init_w = 0.5
@@ -178,7 +195,8 @@ class NAFF(object):
 
         if imode != 0:
             # TEST
-            # plt.figure()
+            # import matplotlib.pyplot as plt
+            # plt.figure(figsize=(12,8))
             # w = np.linspace(0, 1, 100)
             # plt.plot(invtransform(w), np.array([phi_w(ww) for ww in w]))
             # plt.axvline(freq)
@@ -414,6 +432,7 @@ class NAFF(object):
                         (d['n'] != d[ffreq_ixes[1]]['n']) &
                         (np.abs(np.abs(ffreq[0]) - np.abs(d['freq'])) > 1E-6) &
                         (np.abs(np.abs(ffreq[1]) - np.abs(d['freq'])) > 1E-6))[0]
+
         ffreq[2] = d[ixes[0]]['freq']
         ffreq_ixes[2] = ixes[0]
         nqs[2] = d[ixes[0]]['n']
