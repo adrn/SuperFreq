@@ -7,10 +7,13 @@ from __future__ import division, print_function
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Standard library
+import os
 import time
+import uuid
 
 # Third-party
 from astropy import log as logger
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.fft import fftfreq
 try:
@@ -48,7 +51,7 @@ def poincare_polar(w):
 
 class NAFF(object):
 
-    def __init__(self, t):
+    def __init__(self, t, debug=False, debug_path="naff-debug"):
         """ Implementation of the Numerical Analysis of Fundamental Frequencies (NAFF)
             method of Laskar, later modified by Valluri and Merritt (see references below).
 
@@ -71,6 +74,8 @@ class NAFF(object):
             ----------
             t : array_like
                 Array of times.
+            debug : bool
+                Output debuggy things. Default is ``False``.
         """
 
         n = len(t)
@@ -88,6 +93,16 @@ class NAFF(object):
         # pre-compute values of Hanning filter
         self.chi = hanning(self.tz*np.pi/self.T)
 
+        # turn on debugging shite
+        self.debug = debug
+        self.debug_path = debug_path
+        if self.debug:
+            if not os.path.exists(self.debug_path):
+                os.mkdir(self.debug_path)
+
+        # number of data points or time samples
+        self.ndata = len(t)
+
     def frequency(self, f):
         """ Find the most significant frequency of a (complex) time series, :math:`f(t)`,
             by Fourier transforming the function convolved with a Hanning filter and
@@ -100,50 +115,45 @@ class NAFF(object):
                 Complex time-series, :math:`q(t) + i p(t)`.
         """
 
-        # number of data points or time samples
-        ndata = len(f)
+        if len(f) != self.ndata:
+            raise ValueError("Length of complex function doesn't match length of times.")
 
         # take Fourier transform of input (complex) function f
         logger.log(0, "Fourier transforming...")
         t1 = time.time()
-        fff = fft(f) / np.sqrt(ndata)
+        fff = fft(f) / np.sqrt(self.ndata)
         omegas = 2*np.pi*fftfreq(f.size, self.t[1]-self.t[0])
         logger.log(0, "...done. Took {} seconds to FFT.".format(time.time()-t1))
 
-        # # plot the FFT
-        # import matplotlib.pyplot as plt
-        # plt.figure(figsize=(12,8))
-        # plt.semilogx(omegas, fff.real, marker=None)
-        # plt.xlim(1E-3, 1E-1)
-        # plt.show()
-        # sys.exit(0)
+        if self.debug:
+            if not hasattr(self, '_f_counter'):
+                self._f_counter = 0
 
-        A = 1./np.sqrt(ndata - 1.)
-        xf = A * fff.real * (-1)**np.arange(ndata)
-        yf = A * fff.imag * (-1)**np.arange(ndata)
+            # plot the FFT
+            fig,ax = plt.subplots(1,1,figsize=(12,8))
+            ax.loglog(omegas, fff.real**2. + fff.imag**2., marker=None)
+            ax.set_xlim(5E-4, 0.1)
+            ax.set_ylim(1E-6, 1E8)
+            fig.savefig(os.path.join(self.debug_path, "fft-{}.png".format(self._f_counter)))
+            plt.close('all')
 
-        # find max of xf, yf, get index of row -- this is just an initial guess
-        xyf = np.vstack((xf,yf))
-        xyf_abs = np.abs(xyf)
-        wmax = np.max(xyf_abs, axis=0).argmax()
-        if xf[wmax] != 0.:
-            signx = np.sign(xf[wmax])
-            signy = np.sign(yf[wmax])
-        else:
+        # wmax is just an initial guess for optimization
+        xyf = np.abs(fff)
+        wmax = np.max(xyf, axis=0).argmax()
+        if xyf[wmax] == 0:
             # return early -- "this may be an axial or planar orbit"
             return 0.
 
         # find the frequency associated with this index
-        omega0 = omegas[wmax]
-        signo = np.sign(omega0)
+        omega0 = np.abs(omegas[wmax])
 
         # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
-        xf = f.real
-        yf = f.imag
+        Re_f = f.real
+        Im_f = f.imag
 
         # window around estimated best frequency
-        omin = omega0 - np.pi/self.T
-        omax = omega0 + np.pi/self.T
+        omin = omega0 - 2*np.pi/self.T
+        omax = omega0 + 2*np.pi/self.T
 
         def transform(x):
             return (x - omin) / (omax - omin)
@@ -156,11 +166,14 @@ class NAFF(object):
                 Eq. 12 in Valluri & Merritt (1998).
             """
             w = invtransform(w)
+
             # real part of integrand of Eq. 12
-            zreal = self.chi * (xf*np.cos(w*self.tz) + yf*np.sin(w*self.tz))
+            zreal = self.chi * (Re_f*np.cos(w*self.tz) + Im_f*np.sin(w*self.tz))
             ans = simps(zreal, x=self.tz)
+
             # return -(ans*signx*signo)/(2.*self.T)
-            return -np.abs(ans/(2.*self.T))
+            # return -np.abs(ans/(2.*self.T))
+            return -ans / (2.*self.T)
 
         w = np.linspace(0, 1, 50)
         phi_vals = np.array([phi_w(ww) for ww in w])
@@ -175,21 +188,10 @@ class NAFF(object):
                             bounds=[(0,1)], disp=0, iter=50,
                             full_output=True)
         freq,fx,its,imode,smode = res
+        if np.allclose(freq, 0.) or np.allclose(freq, 1.):
+            logger.debug("Freq. optimizer hit bound.")
+            imode = 9999
         freq = invtransform(freq)
-
-        # -------------------------------------------------------------
-        # import uuid
-        # import matplotlib.pyplot as plt
-        # plt.figure(figsize=(12,8))
-        # w = np.linspace(0, 1, 100)
-        # plt.plot(invtransform(w), np.array([phi_w(ww) for ww in w]))
-        # plt.axvline(freq)
-        # plt.axvline(invtransform(init_w), linestyle='dashed')
-        # plt.title(str(imode))
-        # plt.savefig("/Users/adrian/Downloads/{}.png".format(uuid.uuid4()))
-        # plt.show()
-        # sys.exit(0)
-        # -------------------------------------------------------------
 
         # failed by starting at minimum, try instead starting from middle
         if imode != 0:
@@ -200,19 +202,19 @@ class NAFF(object):
             freq,fx,its,imode,smode = res
             freq = invtransform(freq)
 
-        if imode != 0:
-            # TEST
-            # import matplotlib.pyplot as plt
-            # plt.figure(figsize=(12,8))
-            # w = np.linspace(0, 1, 100)
-            # plt.plot(invtransform(w), np.array([phi_w(ww) for ww in w]))
-            # plt.axvline(freq)
-            # plt.axvline(invtransform(init_w), linestyle='dashed')
-            # plt.title(str(imode))
-            # plt.show()
-            # sys.exit(0)
-            # TEST
+        # -------------------------------------------------------------
+        if self.debug:
+            w = np.linspace(0, 1, 100)
+            fig,ax = plt.subplots(1,1,figsize=(12,8))
+            ax.plot(invtransform(w), np.array([phi_w(ww) for ww in w]))
+            ax.axvline(freq)
+            ax.axvline(invtransform(init_w), linestyle='dashed')
+            ax.set_title(str(imode))
+            fig.savefig(os.path.join(self.debug_path, "chi-{}.png".format(self._f_counter)))
+            self._f_counter += 1
+        # -------------------------------------------------------------
 
+        if imode != 0:
             raise ValueError("Function minimization to find best frequency failed with:\n"
                              "\t {} : {}".format(imode, smode))
 
@@ -265,8 +267,11 @@ class NAFF(object):
             # if k == 1:
             #     sys.exit(0)
 
-            # new fk has the previous frequency subtracted out
-            fk,fmax = self.sub_chi(fk, ecap[k], ab)
+            # remove the new orthogonal frequency component from the f_k
+            fk -= ab*ecap[k]
+
+            # now compute the largest amplitude of the residual function f_k
+            fmax = np.max(np.abs(fk))
 
             logger.debug("{}  {:.6f}  {:.6f}  {:.2f}  {:.6f}"
                          .format(k,nu[k],A[k],np.degrees(phi[k]),ab))
@@ -339,15 +344,6 @@ class NAFF(object):
             norm = 0. + 0j
 
         return e_i*norm
-
-    def sub_chi(self, f_km1, ecap_k, a_k):
-        # remove the new orthogonal frequency component from the f_k
-        f_k = f_km1 - a_k*ecap_k
-
-        # now compute the largest amplitude of the residual function f_k
-        fmax = np.max(np.abs(f_k))
-
-        return f_k, fmax
 
     def find_fundamental_frequencies(self, fs, nintvec=15, imax=15, break_condition=1E-7):
         """ Solve for the fundamental frequencies of the given time series, `fs`
