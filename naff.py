@@ -80,7 +80,7 @@ class NAFF(object):
             logger.debug("Truncating time series to length={0} to avoid large prime divisors."
                          .format(self.n))
 
-        self.t = t[:n]
+        self.t = t[:self.n]
         self.ts = 0.5*(self.t[-1] + self.t[0])
         self.T = 0.5*(self.t[-1] - self.t[0])
         self.tz = self.t - self.ts
