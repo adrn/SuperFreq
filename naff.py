@@ -22,7 +22,7 @@ import scipy.optimize as so
 from scipy.integrate import simps
 
 # Project
-from .core import classify_orbit, align_circulation_with_z
+from .core import classify_orbit, align_circulation_with_z, check_for_primes
 
 __all__ = ['NAFF', 'poincare_polar', 'orbit_to_freqs']
 
@@ -73,10 +73,17 @@ class NAFF(object):
                 Array of times.
         """
 
-        self.t = t
-        self.ts = 0.5*(t[-1] + t[0])
-        self.T = 0.5*(t[-1] - t[0])
-        self.tz = t - self.ts
+        n = len(t)
+        self.n = check_for_primes(n)
+
+        if self.n != len(t):
+            logger.debug("Truncating time series to length={0} to avoid large prime divisors."
+                         .format(self.n))
+
+        self.t = t[:n]
+        self.ts = 0.5*(self.t[-1] + self.t[0])
+        self.T = 0.5*(self.t[-1] - self.t[0])
+        self.tz = self.t - self.ts
 
         # pre-compute values of Hanning filter
         self.chi = hanning(self.tz*np.pi/self.T)
@@ -92,6 +99,8 @@ class NAFF(object):
             f : array_like
                 Complex time-series, :math:`q(t) + i p(t)`.
         """
+
+        f = f[:self.n]
 
         # number of data points or time samples
         ndata = len(f)
