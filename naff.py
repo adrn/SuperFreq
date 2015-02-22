@@ -100,8 +100,6 @@ class NAFF(object):
                 Complex time-series, :math:`q(t) + i p(t)`.
         """
 
-        f = f[:self.n]
-
         # number of data points or time samples
         ndata = len(f)
 
@@ -368,7 +366,7 @@ class NAFF(object):
         ndim = len(fs)
 
         for i in range(ndim):
-            nu,A,phi = self.frecoder(fs[i], nintvec=nintvec, break_condition=break_condition)
+            nu,A,phi = self.frecoder(fs[i][:self.n], nintvec=nintvec, break_condition=break_condition)
             freqs.append(-nu)
             As.append(A*np.exp(1j*phi))
             amps.append(A)
