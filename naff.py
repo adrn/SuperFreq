@@ -50,33 +50,35 @@ def poincare_polar(w):
     return fs
 
 class NAFF(object):
+    """
+    Implementation of the Numerical Analysis of Fundamental Frequencies (NAFF)
+    method of Laskar, later modified by Valluri and Merritt (see references below).
+
+    This algorithm attempts to numerically find the fundamental frequencies of an
+    input orbit (time series) and can also find approximate actions for the orbit.
+    The basic idea is to Fourier transform the orbit convolved with a Hanning filter,
+    find the most significant peak, subtract that frequency, and iterate on this
+    until convergence or for a fixed number of terms. The fundamental frequencies
+    can then be solved for by assuming that the frequencies found by the above method
+    are integer combinations of the fundamental frequencies.
+
+    For more information, see:
+
+        - Laskar, J., Froeschlé, C., and Celletti, A. (1992)
+        - Laskar, J. (1993)
+        - Papaphilippou, Y. and Laskar, J. (1996)
+        - Valluri, M. and Merritt, D. (1998)
+
+    Parameters
+    ----------
+    t : array_like
+        Array of times.
+    debug : bool
+        Output debuggy things. Default is ``False``.
+
+    """
 
     def __init__(self, t, debug=False, debug_path="naff-debug"):
-        """ Implementation of the Numerical Analysis of Fundamental Frequencies (NAFF)
-            method of Laskar, later modified by Valluri and Merritt (see references below).
-
-            This algorithm attempts to numerically find the fundamental frequencies of an
-            input orbit (time series) and can also find approximate actions for the orbit.
-            The basic idea is to Fourier transform the orbit convolved with a Hanning filter,
-            find the most significant peak, subtract that frequency, and iterate on this
-            until convergence or for a fixed number of terms. The fundamental frequencies
-            can then be solved for by assuming that the frequencies found by the above method
-            are integer combinations of the fundamental frequencies.
-
-            For more information, see:
-
-                - Laskar, J., Froeschlé, C., and Celletti, A. (1992)
-                - Laskar, J. (1993)
-                - Papaphilippou, Y. and Laskar, J. (1996)
-                - Valluri, M. and Merritt, D. (1998)
-
-            Parameters
-            ----------
-            t : array_like
-                Array of times.
-            debug : bool
-                Output debuggy things. Default is ``False``.
-        """
 
         n = len(t)
         self.n = check_for_primes(n)
@@ -104,15 +106,17 @@ class NAFF(object):
         self.ndata = len(t)
 
     def frequency(self, f):
-        """ Find the most significant frequency of a (complex) time series, :math:`f(t)`,
-            by Fourier transforming the function convolved with a Hanning filter and
-            picking the biggest peak. This assumes `f` is aligned with / given at the
-            times specified when constructing this object.
+        """
+        Find the most significant frequency of a (complex) time series, :math:`f(t)`,
+        by Fourier transforming the function convolved with a Hanning filter and
+        picking the biggest peak. This assumes `f` is aligned with / given at the
+        times specified when constructing this object.
 
-            Parameters
-            ----------
-            f : array_like
-                Complex time-series, :math:`q(t) + i p(t)`.
+        Parameters
+        ----------
+        f : array_like
+            Complex time-series, :math:`q(t) + i p(t)`.
+
         """
 
         if len(f) != self.ndata:
@@ -221,23 +225,24 @@ class NAFF(object):
         return freq[0]
 
     def frecoder(self, f, nintvec=12, break_condition=1E-7):
-        """ For a given number of iterations, or until the break condition is met,
-            solve for strongest frequency of the input time series, then subtract
-            it from the time series.
+        """
+        For a given number of iterations, or until the break condition is met,
+        solve for strongest frequency of the input time series, then subtract
+        it from the time series.
 
-            This function is meant to be the same as the subroutine FRECODER in
-            Monica Valluri's Fortran NAFF routines.
+        This function is meant to be the same as the subroutine FRECODER in
+        Monica Valluri's Fortran NAFF routines.
 
-            Parameters
-            ----------
-            f : array_like
-                Complex time-series, :math:`q(t) + i p(t)`.
-            nintvec : int
-                Number of integer vectors to find or number of frequencies to find and subtract.
-            break_condition : numeric
-                Break the iterations of the time series maximum value or amplitude of the
-                subtracted frequency is smaller than this value. Set to 0 if you want to always
-                iterate for `nintvec` frequencies.
+        Parameters
+        ----------
+        f : array_like
+            Complex time-series, :math:`q(t) + i p(t)`.
+        nintvec : int
+            Number of integer vectors to find or number of frequencies to find and subtract.
+        break_condition : numeric
+            Break the iterations of the time series maximum value or amplitude of the
+            subtracted frequency is smaller than this value. Set to 0 if you want to always
+            iterate for `nintvec` frequencies.
         """
 
         # initialize container arrays
@@ -282,17 +287,18 @@ class NAFF(object):
         return -nu[:k+1], A[:k+1], phi[:k+1]
 
     def hanning_product(self, u1, u2):
-        r""" Compute the scalar product of two 'vectors', `u1` and `u2`.
-            The scalar product is defined with the Hanning filter as
+        r"""
+        Compute the scalar product of two 'vectors', `u1` and `u2`.
+        The scalar product is defined with the Hanning filter as
 
-            .. math::
+        .. math::
 
-                <u_1, u_2> = \frac{1}{2 T} \int \, u_1(t) \, \chi(t) \, u_2^*(t)\,dt
+            <u_1, u_2> = \frac{1}{2 T} \int \, u_1(t) \, \chi(t) \, u_2^*(t)\,dt
 
-            Parameters
-            ----------
-            u1 : array_like
-            u2 : array_like
+        Parameters
+        ----------
+        u1 : array_like
+        u2 : array_like
         """
 
         # First find complex conjugate of vector u2 and construct integrand
@@ -309,7 +315,9 @@ class NAFF(object):
         return real + imag*1j
 
     def gso(self, ecap, nu, k):
-        r""" Gram-Schmidt orthonormalization of the function
+        r"""
+        Gram-Schmidt orthonormalization of the function
+
         ..math::
 
             e_k(t) = \exp (i \omega_k t)
