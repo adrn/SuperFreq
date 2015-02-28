@@ -84,16 +84,23 @@ class NAFF(object):
         self.n = check_for_primes(n)
 
         if self.n != len(t):
-            logger.debug("Truncating time series to length={0} to avoid large prime divisors."
-                         .format(self.n))
+            logger.info("Truncating time series to length={0} to avoid large prime divisors."
+                        .format(self.n))
 
+        # array of times
         self.t = t[:self.n]
-        self.ts = 0.5*(self.t[-1] + self.t[0])
-        self.T = 0.5*(self.t[-1] - self.t[0])
-        self.tz = self.t - self.ts
 
-        # pre-compute values of Hanning filter
-        self.chi = hanning(self.tz*np.pi/self.T)
+        # average time
+        t_avg = 0.5 * (self.t[-1] + self.t[0])
+
+        # re-center time so middle is 0
+        self.tz = self.t - t_avg
+
+        # time window size: time series goes from -T to T
+        self.T = 0.5 * (self.t[-1] - self.t[0])
+
+        # pre-compute values of Hanning filter for this window
+        self.chi = hanning(self.tz * np.pi/self.T)  # the argument is 2π/(2T)
 
         # turn on debugging shite
         self.debug = debug
@@ -101,9 +108,6 @@ class NAFF(object):
         if self.debug:
             if not os.path.exists(self.debug_path):
                 os.mkdir(self.debug_path)
-
-        # number of data points or time samples
-        self.ndata = len(t)
 
     def frequency(self, f):
         """
@@ -119,13 +123,13 @@ class NAFF(object):
 
         """
 
-        if len(f) != self.ndata:
+        if len(f) != self.n:
             raise ValueError("Length of complex function doesn't match length of times.")
 
         # take Fourier transform of input (complex) function f
         logger.log(0, "Fourier transforming...")
         t1 = time.time()
-        fff = fft(f) / np.sqrt(self.ndata)
+        fff = fft(f) / np.sqrt(self.n)
         omegas = 2*np.pi*fftfreq(f.size, self.t[1]-self.t[0])
         logger.log(0, "...done. Took {} seconds to FFT.".format(time.time()-t1))
 
