@@ -127,11 +127,10 @@ class NAFF(object):
             raise ValueError("Length of complex function doesn't match length of times.")
 
         # take Fourier transform of input (complex) function f
-        logger.log(0, "Fourier transforming...")
         t1 = time.time()
         fff = fft(f) / np.sqrt(self.n)
         omegas = 2*np.pi*fftfreq(f.size, self.t[1]-self.t[0])
-        logger.log(0, "...done. Took {} seconds to FFT.".format(time.time()-t1))
+        logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
 
         if self.debug:
             if not hasattr(self, '_f_counter'):
@@ -140,28 +139,56 @@ class NAFF(object):
             # plot the FFT
             fig,ax = plt.subplots(1,1,figsize=(12,8))
             ax.loglog(omegas, fff.real**2. + fff.imag**2., marker=None)
-            ax.set_xlim(5E-4, 0.1)
-            ax.set_ylim(1E-6, 1E8)
             fig.savefig(os.path.join(self.debug_path, "fft-{}.png".format(self._f_counter)))
             plt.close('all')
 
         # wmax is just an initial guess for optimization
         xyf = np.abs(fff)
-        wmax = np.max(xyf, axis=0).argmax()
-        if xyf[wmax] == 0:
+        wmax = xyf.argmax()
+        if np.allclose(xyf[wmax], 0):
             # return early -- "this may be an axial or planar orbit"
+            logger.log(0, "Returning early - may be an axial or planar orbit?")
             return 0.
 
-        # find the frequency associated with this index
-        omega0 = np.abs(omegas[wmax])
+        # real and complex part of input time series
+        Re_f = f.real.copy()
+        Im_f = f.imag.copy()
+
+        # --------- DEBUG ------------
+        xf = fff.real
+        yf = fff.imag
+
+        wmax_orig = wmax
+        const2 = 1. / np.sqrt(self.n-1.)
+        xmax = -10000.
+        for i in range(self.n):
+            xf[i] = (-1.)**i * (const2*xf[i])
+            yf[i] = (-1.)**i * (const2*yf[i])
+
+            if np.abs(xf[i]) > xmax or np.abs(yf[i]) > xmax:
+                xmax = max(np.abs(xf[i]), np.abs(yf[i]))
+                wmax = i
 
         # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
+        signx = xf[wmax]/np.abs(xf[wmax])
+        # print(signx)
+        omega0 = omegas[wmax]
+
+        # 'relaod time series'
+        wmax = wmax_orig
         Re_f = f.real
         Im_f = f.imag
+        # --------- DEBUG ------------
+
+        # frequency associated with the peak index
+        omega0 = omegas[wmax]
+
+        # # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
+        # signx = Re_f[wmax]/np.abs(Re_f[wmax])
 
         # window around estimated best frequency
-        omin = omega0 - 2*np.pi/self.T
-        omax = omega0 + 2*np.pi/self.T
+        omin = omega0 - np.pi/self.T
+        omax = omega0 + np.pi/self.T
 
         def transform(x):
             return (x - omin) / (omax - omin)
@@ -179,9 +206,7 @@ class NAFF(object):
             zreal = self.chi * (Re_f*np.cos(w*self.tz) + Im_f*np.sin(w*self.tz))
             ans = simps(zreal, x=self.tz)
 
-            # return -(ans*signx*signo)/(2.*self.T)
-            # return -np.abs(ans/(2.*self.T))
-            return -ans / (2.*self.T)
+            return -(ans*signx) / (2.*self.T)
 
         w = np.linspace(0, 1, 50)
         phi_vals = np.array([phi_w(ww) for ww in w])
@@ -208,6 +233,8 @@ class NAFF(object):
                                 bounds=[(0,1)], disp=0, iter=100,
                                 full_output=True)
             freq,fx,its,imode,smode = res
+            if np.allclose(freq, 0.) or np.allclose(freq, 1.):
+                raise RuntimeError("Frequency optimizer hit bound.")
             freq = invtransform(freq)
 
         # -------------------------------------------------------------
@@ -258,6 +285,7 @@ class NAFF(object):
         fk = f.copy()
         logger.debug("-"*50)
         logger.debug("k    ωk    Ak    φk(deg)    ak")
+        broke = False
         for k in range(nintvec):
             nu[k] = self.frequency(fk)
 
@@ -285,10 +313,14 @@ class NAFF(object):
             logger.debug("{}  {:.6f}  {:.6f}  {:.2f}  {:.6f}"
                          .format(k,nu[k],A[k],np.degrees(phi[k]),ab))
 
-            if break_condition is not None and (fmax < break_condition or A[k] < break_condition):
+            if break_condition is not None and (A[k] < break_condition):
+                broke = True
                 break
 
-        return -nu[:k+1], A[:k+1], phi[:k+1]
+        if broke:
+            return nu[:k], A[:k], phi[:k]
+        else:
+            return nu[:k+1], A[:k+1], phi[:k+1]
 
     def hanning_product(self, u1, u2):
         r"""
