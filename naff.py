@@ -155,8 +155,8 @@ class NAFF(object):
         Im_f = f.imag.copy()
 
         # --------- DEBUG ------------
-        xf = fff.real
-        yf = fff.imag
+        xf = fff.real.copy()
+        yf = fff.imag.copy()
 
         wmax_orig = wmax
         const2 = 1. / np.sqrt(self.n-1.)
@@ -170,8 +170,8 @@ class NAFF(object):
                 wmax = i
 
         # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
-        signx = xf[wmax]/np.abs(xf[wmax])
-        # print(signx)
+        # signx = np.sign(xf[wmax])
+        signx = 1.
         omega0 = omegas[wmax]
 
         # 'relaod time series'
@@ -204,9 +204,16 @@ class NAFF(object):
 
             # real part of integrand of Eq. 12
             zreal = self.chi * (Re_f*np.cos(w*self.tz) + Im_f*np.sin(w*self.tz))
-            ans = simps(zreal, x=self.tz)
+            Re_ans = simps(zreal, x=self.tz)
+
+            # imag. part of integrand of Eq. 12
+            zimag = self.chi * (Im_f*np.cos(w*self.tz) - Re_f*np.sin(w*self.tz))
+            Im_ans = simps(zimag, x=self.tz)
+
+            ans = np.sqrt(Re_ans**2 + Im_ans**2)
 
             return -(ans*signx) / (2.*self.T)
+            # return -np.abs(ans) / (2.*self.T)
 
         w = np.linspace(0, 1, 50)
         phi_vals = np.array([phi_w(ww) for ww in w])
@@ -217,6 +224,7 @@ class NAFF(object):
         else:
             init_w = w[phi_ix]
 
+        fac = 1.
         res = so.fmin_slsqp(phi_w, x0=init_w, acc=1E-9,
                             bounds=[(0,1)], disp=0, iter=50,
                             full_output=True)
@@ -224,17 +232,25 @@ class NAFF(object):
         if np.allclose(freq, 0.) or np.allclose(freq, 1.):
             logger.debug("Freq. optimizer hit bound.")
             imode = 9999
+            fac = -1.
         freq = invtransform(freq)
 
+        failure = False
         # failed by starting at minimum, try instead starting from middle
         if imode != 0:
             init_w = 0.5
-            res = so.fmin_slsqp(phi_w, x0=init_w, acc=1E-9,
-                                bounds=[(0,1)], disp=0, iter=100,
-                                full_output=True)
+            if fac < 0:
+                res = so.fmin_slsqp(lambda w: -phi_w(w), x0=init_w, acc=1E-9,
+                                    bounds=[(0,1)], disp=0, iter=100,
+                                    full_output=True)
+            else:
+                res = so.fmin_slsqp(phi_w, x0=init_w, acc=1E-9,
+                                    bounds=[(0,1)], disp=0, iter=100,
+                                    full_output=True)
             freq,fx,its,imode,smode = res
             if np.allclose(freq, 0.) or np.allclose(freq, 1.):
-                raise RuntimeError("Frequency optimizer hit bound.")
+                failure = True
+
             freq = invtransform(freq)
 
         # -------------------------------------------------------------
@@ -248,6 +264,9 @@ class NAFF(object):
             fig.savefig(os.path.join(self.debug_path, "chi-{}.png".format(self._f_counter)))
             self._f_counter += 1
         # -------------------------------------------------------------
+
+        if failure:
+            raise RuntimeError("Frequency optimizer hit bound.")
 
         if imode != 0:
             raise ValueError("Function minimization to find best frequency failed with:\n"
@@ -307,13 +326,10 @@ class NAFF(object):
             # remove the new orthogonal frequency component from the f_k
             fk -= ab*ecap[k]
 
-            # now compute the largest amplitude of the residual function f_k
-            fmax = np.max(np.abs(fk))
-
             logger.debug("{}  {:.6f}  {:.6f}  {:.2f}  {:.6f}"
                          .format(k,nu[k],A[k],np.degrees(phi[k]),ab))
 
-            if break_condition is not None and (A[k] < break_condition):
+            if break_condition is not None and A[k] < break_condition:
                 broke = True
                 break
 
@@ -343,12 +359,12 @@ class NAFF(object):
         integ_i = integ.imag
 
         # Integrate the real part
-        real = simps(integ_r, x=self.tz) / (2.*self.T)
+        real = simps(integ_r, x=self.tz)
 
         # Integrate Imaginary part
-        imag = simps(integ_i, x=self.tz) / (2.*self.T)
+        imag = simps(integ_i, x=self.tz)
 
-        return real + imag*1j
+        return (real + 1j*imag) / (2.*self.T)
 
     def gso(self, ecap, nu, k):
         r"""
