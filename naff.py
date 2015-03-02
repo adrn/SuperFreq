@@ -78,7 +78,7 @@ class NAFF(object):
 
     """
 
-    def __init__(self, t, debug=False, debug_path="naff-debug"):
+    def __init__(self, t, keep_calm=True, debug=False, debug_path="naff-debug"):
 
         n = len(t)
         self.n = check_for_primes(n)
@@ -86,6 +86,9 @@ class NAFF(object):
         if self.n != len(t):
             logger.info("Truncating time series to length={0} to avoid large prime divisors."
                         .format(self.n))
+
+        #
+        self.keep_calm = keep_calm
 
         # array of times
         self.t = t[:self.n]
@@ -306,7 +309,14 @@ class NAFF(object):
         logger.debug("k    ωk    Ak    φk(deg)    ak")
         broke = False
         for k in range(nintvec):
-            nu[k] = self.frequency(fk)
+            try:
+                nu[k] = self.frequency(fk)
+            except RuntimeError:
+                if self.keep_calm:
+                    broke = True
+                    broke
+                else:
+                    raise
 
             if k == 0:
                 # compute exp(iωt) for first frequency
@@ -423,7 +433,7 @@ class NAFF(object):
 
         for i in range(ndim):
             nu,A,phi = self.frecoder(fs[i][:self.n], nintvec=nintvec, break_condition=break_condition)
-            freqs.append(-nu)
+            freqs.append(nu)
             As.append(A*np.exp(1j*phi))
             amps.append(A)
             phis.append(phi)
@@ -451,18 +461,20 @@ class NAFF(object):
         ffreq[0] = d[ixes[0]]['freq']
         ffreq_ixes[0] = ixes[0]
         nqs[0] = d[ixes[0]]['n']
+        # print("1", d[ixes[0]])
 
         if ndim == 1:
             return ffreq, d, ffreq_ixes
 
         # choose the next nontrivially related frequency as the 2nd fundamental:
-        #   TODO: why 1E-6? this isn't well described in the papers...
+        #   TODO: why 1E-5? this isn't well described in the papers...
         ixes = np.where((np.abs(d['freq']) > 1E-5) &
                         (d['n'] != d[ffreq_ixes[0]]['n']) &
-                        (np.abs(np.abs(ffreq[0]) - np.abs(d['freq'])) > 1E-6))[0]
+                        (np.abs(np.abs(ffreq[0]) - np.abs(d['freq'])) > 1E-5))[0]
         ffreq[1] = d[ixes[0]]['freq']
         ffreq_ixes[1] = ixes[0]
         nqs[1] = d[ixes[0]]['n']
+        # print("2", d[ixes[0]])
 
         if ndim == 2:
             return ffreq[nqs.argsort()], d, ffreq_ixes[nqs.argsort()]
@@ -499,6 +511,7 @@ class NAFF(object):
         ffreq[2] = d[ixes[0]]['freq']
         ffreq_ixes[2] = ixes[0]
         nqs[2] = d[ixes[0]]['n']
+        # print("3", d[ixes[0]])
 
         if not np.all(np.unique(sorted(nqs)) == [0,1,2]):
             raise ValueError("Don't have x,y,z frequencies.")
