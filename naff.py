@@ -135,16 +135,6 @@ class NAFF(object):
         omegas = 2*np.pi*fftfreq(f.size, self.t[1]-self.t[0])
         logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
 
-        if self.debug:
-            if not hasattr(self, '_f_counter'):
-                self._f_counter = 0
-
-            # plot the FFT
-            fig,ax = plt.subplots(1,1,figsize=(12,8))
-            ax.loglog(omegas, fff.real**2. + fff.imag**2., marker=None)
-            fig.savefig(os.path.join(self.debug_path, "fft-{}.png".format(self._f_counter)))
-            plt.close('all')
-
         # wmax is just an initial guess for optimization
         xyf = np.abs(fff)
         wmax = xyf.argmax()
@@ -152,6 +142,19 @@ class NAFF(object):
             # return early -- "this may be an axial or planar orbit"
             logger.log(0, "Returning early - may be an axial or planar orbit?")
             return 0.
+
+        if self.debug:
+            if not hasattr(self, '_f_counter'):
+                self._f_counter = 0
+
+            # plot the FFT
+            fig,ax = plt.subplots(1,1,figsize=(12,8))
+            ax.loglog(omegas, fff.real**2. + fff.imag**2., marker=None)
+            # ax.set_xscale('symlog', linthreshx=1E-4)
+            ax.axvline(np.abs(omegas[wmax]), linestyle='dashed', alpha=0.5)
+            ax.set_xlim(0.001, 0.01)
+            fig.savefig(os.path.join(self.debug_path, "fft-{}.png".format(self._f_counter)))
+            plt.close('all')
 
         # real and complex part of input time series
         Re_f = f.real.copy()
@@ -175,9 +178,9 @@ class NAFF(object):
         # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
         # signx = np.sign(xf[wmax])
         signx = 1.
-        omega0 = omegas[wmax]
+        omega0_2 = omegas[wmax]
 
-        # 'relaod time series'
+        # 'reload time series'
         wmax = wmax_orig
         Re_f = f.real
         Im_f = f.imag
@@ -214,6 +217,7 @@ class NAFF(object):
             Im_ans = simps(zimag, x=self.tz)
 
             ans = np.sqrt(Re_ans**2 + Im_ans**2)
+            # ans = Re_ans
 
             return -(ans*signx) / (2.*self.T)
             # return -np.abs(ans) / (2.*self.T)
@@ -314,7 +318,7 @@ class NAFF(object):
             except RuntimeError:
                 if self.keep_calm:
                     broke = True
-                    broke
+                    break
                 else:
                     raise
 
@@ -421,6 +425,8 @@ class NAFF(object):
             TODO:
         """
 
+        min_freq = 1E-6
+
         # containers
         freqs = []
         As = []
@@ -457,7 +463,7 @@ class NAFF(object):
         nqs = np.zeros(ndim, dtype=int)
 
         # first frequency is largest amplitude, nonzero freq.
-        ixes = np.where(np.abs(d['freq']) > 1E-5)[0]
+        ixes = np.where(np.abs(d['freq']) > min_freq)[0]
         ffreq[0] = d[ixes[0]]['freq']
         ffreq_ixes[0] = ixes[0]
         nqs[0] = d[ixes[0]]['n']
@@ -467,10 +473,10 @@ class NAFF(object):
             return ffreq, d, ffreq_ixes
 
         # choose the next nontrivially related frequency as the 2nd fundamental:
-        #   TODO: why 1E-5? this isn't well described in the papers...
-        ixes = np.where((np.abs(d['freq']) > 1E-5) &
+        #   TODO: why min_freq=1E-6? this isn't well described in the papers...
+        ixes = np.where((np.abs(d['freq']) > min_freq) &
                         (d['n'] != d[ffreq_ixes[0]]['n']) &
-                        (np.abs(np.abs(ffreq[0]) - np.abs(d['freq'])) > 1E-5))[0]
+                        (np.abs(np.abs(ffreq[0]) - np.abs(d['freq'])) > min_freq))[0]
         ffreq[1] = d[ixes[0]]['freq']
         ffreq_ixes[1] = ixes[0]
         nqs[1] = d[ixes[0]]['n']
@@ -502,7 +508,7 @@ class NAFF(object):
 
         # for now, third frequency is just largest amplitude frequency in the remaining dimension
         #   TODO: why 1E-6? this isn't well described in the papers...
-        ixes = np.where((np.abs(d['freq']) > 1E-5) &
+        ixes = np.where((np.abs(d['freq']) > min_freq) &
                         (d['n'] != d[ffreq_ixes[0]]['n']) &
                         (d['n'] != d[ffreq_ixes[1]]['n']) &
                         (np.abs(np.abs(ffreq[0]) - np.abs(d['freq'])) > 1E-6) &
