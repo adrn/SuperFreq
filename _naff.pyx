@@ -2,6 +2,13 @@
 
 from __future__ import division, print_function
 
+""" Note: I got stuck because of the same issue found in the regular code. Using
+    the full complex magnitude of phi(w) does better for complex orbits, but for
+    a simple case where I construct a time series by hand (with amplitudes and
+    frequencies), phi(w) looks like somone took an abs() to the function. e.g.,
+    it looks double humped / crosses zero.
+"""
+
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Standard library
@@ -61,6 +68,9 @@ cdef double phi_w(double w):
 
     return -(ans*signx) / (2.*T)
 
+cpdef double py_phi_w(double w):
+    return phi_w(w)
+
 cpdef double naff_frequency(double[::1] _tz, double[::1] _chi,
                             double[::1] _Re_f, double[::1] _Im_f, double _T):
     global ntimes, omin, omax, dtz, T, signx
@@ -91,7 +101,24 @@ cpdef double naff_frequency(double[::1] _tz, double[::1] _chi,
     omax = true_omega + np.pi/T
     signx = 1.
 
+    w = np.linspace(0, 1, 150)
+    phi_vals = np.array([phi_w(ww) for ww in w])
+
+    import scipy.optimize as so
+    res = so.fmin_slsqp(py_phi_w, x0=0.5, acc=1E-9,
+                        bounds=[(0,1)], disp=0, iter=100,
+                        full_output=True)
+    scipy_xmin,fx,its,imode,smode = res
+    scipy_xmin = scipy_xmin*(omax - omin) + omin
+
     local_min(0., 1., 1E-10, 1E-10, phi_w, &xmin)
     xmin = xmin*(omax - omin) + omin
     print(xmin)
+
+    import matplotlib.pyplot as plt
+    plt.plot(w*(omax - omin) + omin, phi_vals)
+    plt.axvline(true_omega, color='g')
+    plt.axvline(xmin, color='r', linestyle='dashed')
+    plt.axvline(scipy_xmin, color='b', linestyle='dashed')
+    plt.show()
 
