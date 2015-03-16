@@ -9,7 +9,6 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 # Standard library
 import os
 import time
-import uuid
 
 # Third-party
 from astropy import log as logger
