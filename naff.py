@@ -418,7 +418,7 @@ class NAFF(object):
         if len(ixes) == 0:
             # may be a planar orbit
             logger.warning("May be a planar orbit")
-            fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
+            return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
         fund_freqs[2] = d[ixes[0]]['freq']
         ffreq_ixes[2] = ixes[0]
