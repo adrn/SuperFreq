@@ -7,12 +7,10 @@ from __future__ import division, print_function
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Standard library
-import os
 import time
 
 # Third-party
 from astropy import log as logger
-import matplotlib.pyplot as plt
 import numpy as np
 from numpy.fft import fftfreq
 # try:
@@ -139,17 +137,17 @@ class NAFF(object):
             f = f[:self.n]
 
         # take Fourier transform of input (complex) function f
-        if HAS_PYFFTW:
-            _f = pyfftw.n_byte_align_empty(f.size, 16, 'complex128')
-            _f[:] = f
+        # if HAS_PYFFTW:
+        #     _f = pyfftw.n_byte_align_empty(f.size, 16, 'complex128')
+        #     _f[:] = f
 
-            fft_obj = pyfftw.builders.fft(f, overwrite_input=True,
-                                          planner_effort='FFTW_ESTIMATE')
-            fff = fft_obj() / np.sqrt(self.n)
-        else:
-            t1 = time.time()
-            fff = fft(f) / np.sqrt(self.n)
-            logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
+        #     fft_obj = pyfftw.builders.fft(f, overwrite_input=True,
+        #                                   planner_effort='FFTW_ESTIMATE')
+        #     fff = fft_obj() / np.sqrt(self.n)
+        # else:
+        t1 = time.time()
+        fff = fft(f) / np.sqrt(self.n)
+        logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
 
         # frequencies
         omegas = 2*np.pi*fftfreq(f.size, self.dt)
@@ -416,6 +414,11 @@ class NAFF(object):
                         (d['idx'] != d[ffreq_ixes[1]]['idx']) &  # different component index
                         (np.abs(abs_freq1 - np.abs(d['freq'])) > min_freq_diff) &
                         (np.abs(abs_freq2 - np.abs(d['freq'])) > min_freq_diff))[0]
+
+        if len(ixes) == 0:
+            # may be a planar orbit
+            logger.warning("May be a planar orbit")
+            fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
         fund_freqs[2] = d[ixes[0]]['freq']
         ffreq_ixes[2] = ixes[0]
