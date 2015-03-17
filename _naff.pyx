@@ -111,7 +111,7 @@ cpdef double naff_frequency(double[::1] _tz, double[::1] _chi,
     scipy_xmin,fx,its,imode,smode = res
     scipy_xmin = scipy_xmin*(omax - omin) + omin
 
-    local_min(0., 1., 1E-10, 1E-10, phi_w, &xmin)
+    local_min(0., 1., 1E-13, 1E-13, phi_w, &xmin)
     xmin = xmin*(omax - omin) + omin
     print(xmin)
 
