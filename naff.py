@@ -73,12 +73,14 @@ class NAFF(object):
     ----------
     t : array_like
         Array of times.
-    debug : bool
-        Output debuggy things. Default is ``False``.
+    keep_calm : bool (optional)
+        If something fails when solving for the frequency of a given component,
+        ``keep_calm`` determines whether to throw a RuntimeError or exit gracefully.
+        If set to ``True``, will exit quietly and carry on.
 
     """
 
-    def __init__(self, t, keep_calm=True, debug=False, debug_path="naff-debug"):
+    def __init__(self, t, keep_calm=True):
 
         n = len(t)
         self.n = check_for_primes(n)
@@ -86,9 +88,6 @@ class NAFF(object):
         if self.n != len(t):
             logger.info("Truncating time series to length={0} to avoid large prime divisors."
                         .format(self.n))
-
-        #
-        self.keep_calm = keep_calm
 
         # array of times
         self.t = t[:self.n]
@@ -106,29 +105,35 @@ class NAFF(object):
         # pre-compute values of Hanning filter for this window
         self.chi = hanning(self.tz * np.pi/self.T)  # the argument is 2π/(2T)
 
-        # turn on debugging shite
-        self.debug = debug
-        self.debug_path = debug_path
-        if self.debug:
-            if not os.path.exists(self.debug_path):
-                os.mkdir(self.debug_path)
+        # when solving for frequencies and removing components from the time series,
+        #   if something fails for a given component and keep_calm is set to True,
+        #   NAFF will exit gracefully instead of throwing a RuntimeError
+        self.keep_calm = keep_calm
 
     def frequency(self, f):
         """
         Find the most significant frequency of a (complex) time series, :math:`f(t)`,
         by Fourier transforming the function convolved with a Hanning filter and
-        picking the biggest peak. This assumes `f` is aligned with / given at the
-        times specified when constructing this object.
+        picking the most significant peak. This assumes the time series, `f`,
+        is aligned with / given at the times specified when constructing this
+        object. An internal function.
 
         Parameters
         ----------
         f : array_like
             Complex time-series, :math:`q(t) + i p(t)`.
 
+        Returns
+        -------
+        freq : numeric
+            The strongest frequency in the specified complex time series, ``f``.
+
         """
 
         if len(f) != self.n:
-            raise ValueError("Length of complex function doesn't match length of times.")
+            logger.warning("Truncating time series to match shape of time array ({0}) ({1})"
+                           .format(len(f), self.n))
+            f = f[:self.n]
 
         # take Fourier transform of input (complex) function f
         if HAS_PYFFTW:
@@ -154,48 +159,9 @@ class NAFF(object):
             logger.log(0, "Returning early - may be an axial or planar orbit?")
             return 0.
 
-        if self.debug:
-            if not hasattr(self, '_f_counter'):
-                self._f_counter = 0
-
-            # plot the FFT
-            fig,ax = plt.subplots(1,1,figsize=(12,8))
-            ax.loglog(omegas, fff.real**2. + fff.imag**2., marker=None)
-            # ax.set_xscale('symlog', linthreshx=1E-4)
-            ax.axvline(np.abs(omegas[wmax]), linestyle='dashed', alpha=0.5)
-            ax.set_xlim(0.001, 0.01)
-            fig.savefig(os.path.join(self.debug_path, "fft-{}.png".format(self._f_counter)))
-            plt.close('all')
-
         # real and complex part of input time series
         Re_f = f.real.copy()
         Im_f = f.imag.copy()
-
-        # # --------- DEBUG ------------
-        # xf = fff.real.copy()
-        # yf = fff.imag.copy()
-
-        # wmax_orig = wmax
-        # const2 = 1. / np.sqrt(self.n-1.)
-        # xmax = -10000.
-        # for i in range(self.n):
-        #     xf[i] = (-1.)**i * (const2*xf[i])
-        #     yf[i] = (-1.)**i * (const2*yf[i])
-
-        #     if np.abs(xf[i]) > xmax or np.abs(yf[i]) > xmax:
-        #         xmax = max(np.abs(xf[i]), np.abs(yf[i]))
-        #         wmax = i
-
-        # # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
-        # # signx = np.sign(xf[wmax])
-        # signx = 1.
-        # omega0_2 = omegas[wmax]
-
-        # # 'reload time series'
-        # wmax = wmax_orig
-        # Re_f = f.real
-        # Im_f = f.imag
-        # # --------- DEBUG ------------
 
         # frequency associated with the peak index
         omega0 = omegas[wmax]
@@ -216,17 +182,27 @@ class NAFF(object):
         ----------
         f : array_like
             Complex time-series, :math:`q(t) + i p(t)`.
-        nintvec : int
+        nintvec : int (optional)
             Number of integer vectors to find or number of frequencies to find and subtract.
-        break_condition : numeric
+        break_condition : numeric (optional)
             Break the iterations of the time series maximum value or amplitude of the
-            subtracted frequency is smaller than this value. Set to 0 if you want to always
-            iterate for `nintvec` frequencies.
+            subtracted frequency is smaller than this value. Set to ``None`` if you want
+            to always iterate for `nintvec` frequencies.
+
+        Returns
+        -------
+        omega : :class:`numpy.ndarray`
+            Array of frequencies for each component in the time series.
+        ampl : :class:`numpy.ndarray`
+            Array of real amplitudes for each component in the time series.
+        phi : :class:`numpy.ndarray`
+            Array of phases for the complex amplitudes for each component
+            in the time series.
         """
 
         # initialize container arrays
         ecap = np.zeros((nintvec,len(self.t)), dtype=np.complex64)
-        nu = np.zeros(nintvec)
+        omega = np.zeros(nintvec)
         A = np.zeros(nintvec)
         phi = np.zeros(nintvec)
 
@@ -236,7 +212,7 @@ class NAFF(object):
         broke = False
         for k in range(nintvec):
             try:
-                nu[k] = self.frequency(fk)
+                omega[k] = self.frequency(fk)
             except RuntimeError:
                 if self.keep_calm:
                     broke = True
@@ -246,33 +222,29 @@ class NAFF(object):
 
             if k == 0:
                 # compute exp(iωt) for first frequency
-                ecap[k] = np.exp(1j*nu[k]*self.t)
+                ecap[k] = np.exp(1j*omega[k]*self.t)
             else:
-                ecap[k] = self.gso(ecap, nu[k], k)
+                ecap[k] = self.gso(ecap, omega[k], k)
 
             # get complex amplitude by projecting exp(iωt) on to f(t)
             ab = self.hanning_product(fk, ecap[k])
             A[k] = np.abs(ab)
             phi[k] = np.arctan2(ab.imag, ab.real)
 
-            # print(nu[k], ab, A[k], phi[k])
-            # if k == 1:
-            #     sys.exit(0)
-
             # remove the new orthogonal frequency component from the f_k
             fk -= ab*ecap[k]
 
             logger.debug("{}  {:.6f}  {:.6f}  {:.2f}  {:.6f}"
-                         .format(k,nu[k],A[k],np.degrees(phi[k]),ab))
+                         .format(k,omega[k],A[k],np.degrees(phi[k]),ab))
 
             if break_condition is not None and A[k] < break_condition:
                 broke = True
                 break
 
         if broke:
-            return nu[:k], A[:k], phi[:k]
+            return omega[:k], A[:k], phi[:k]
         else:
-            return nu[:k+1], A[:k+1], phi[:k+1]
+            return omega[:k+1], A[:k+1], phi[:k+1]
 
     def hanning_product(self, u1, u2):
         r"""
@@ -287,6 +259,11 @@ class NAFF(object):
         ----------
         u1 : array_like
         u2 : array_like
+
+        Returns
+        -------
+        prod : float
+            Scalar product.
         """
 
         # First find complex conjugate of vector u2 and construct integrand
@@ -302,9 +279,9 @@ class NAFF(object):
 
         return (real + 1j*imag) / (2.*self.T)
 
-    def gso(self, ecap, nu, k):
+    def gso(self, ecap, omega, k):
         r"""
-        Gram-Schmidt orthonormalization of the function
+        Gram-Schmidt orthonormalization of the time series.
 
         ..math::
 
@@ -315,15 +292,21 @@ class NAFF(object):
         Parameters
         ----------
         ecap : array_like
-        nu : numeric
+        omega : numeric
+            Frequency of current component.
         k : int
-            Index of maximum freq. found so far.
+            Index of maximum frequency found so far.
+
+        Returns
+        -------
+        ei : :class:`numpy.ndarray`
+            Orthonormalized time series.
         """
 
         # coefficients
         c_ik = np.zeros(k, dtype=np.complex64)
 
-        u_n = np.exp(1j*nu*self.t)
+        u_n = np.exp(1j*omega*self.t)
 
         # first find the k complex constants cik(k,ndata):
         for j in range(k):
@@ -341,13 +324,25 @@ class NAFF(object):
 
         return e_i*norm
 
-    def find_fundamental_frequencies(self, fs, nintvec=15, imax=15, break_condition=1E-7):
-        """ Solve for the fundamental frequencies of the given time series, `fs`
-
-            TODO:
+    def find_fundamental_frequencies(self, fs, min_freq=1E-6, **frecoder_kwargs):
         """
+        Solve for the fundamental frequencies of each specified time series,
+        `fs`. This is most commonly a 2D array, tuple, or iterable of individual
+        complex time series. Any extra keyword arguments are passed to
+        `frecoder()`.
 
-        min_freq = 1E-6
+        Parameters
+        ----------
+        fs : array_like, iterable
+            The time series. If an array-like object, should be 2D with length
+            along axis=0 equal to the number of time series.
+        min_freq : numeric (optional)
+            The minimum (absolute) frequency value to consider non-zero.
+
+        Returns
+        -------
+
+        """
 
         # containers
         freqs = []
@@ -360,7 +355,7 @@ class NAFF(object):
         ndim = len(fs)
 
         for i in range(ndim):
-            nu,A,phi = self.frecoder(fs[i][:self.n], nintvec=nintvec, break_condition=break_condition)
+            nu,A,phi = self.frecoder(fs[i][:self.n], **frecoder_kwargs)
             freqs.append(nu)
             As.append(A*np.exp(1j*phi))
             amps.append(A)
