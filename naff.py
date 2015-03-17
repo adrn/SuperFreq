@@ -15,12 +15,15 @@ from astropy import log as logger
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.fft import fftfreq
-try:
-    import pyfftw
-    HAS_PYFFTW = True
-except ImportError:
-    from numpy.fft import fft
-    HAS_PYFFTW = False
+# try:
+#     import pyfftw
+#     HAS_PYFFTW = True
+# except ImportError:
+#     from numpy.fft import fft
+#     HAS_PYFFTW = False
+from numpy.fft import fft
+HAS_PYFFTW = False
+# TODO: enable and fix PyFFTW support -- current implementation is broken / gives wrong phi(w)
 
 # Project
 from .core import classify_orbit, align_circulation_with_z, check_for_primes
@@ -149,7 +152,7 @@ class NAFF(object):
             logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
 
         # frequencies
-        omegas = 2*np.pi*fftfreq(f.size, self.t[1]-self.t[0])
+        omegas = 2*np.pi*fftfreq(f.size, self.dt)
 
         # wmax is just an initial guess for optimization
         xyf = np.abs(fff)
@@ -368,7 +371,7 @@ class NAFF(object):
             component_ix.append(np.zeros_like(omega) + i)  # index of the component
             nfreqstotal += len(omega)
 
-        d = np.zeros(nfreqstotal, dtype=zip(('freq','A','|A|','phi','n'),
+        d = np.zeros(nfreqstotal, dtype=zip(('freq','A','|A|','phi','idx'),
                                             ('f8','c8','f8','f8',np.int)))
         d['freq'] = np.concatenate(freqs)
         d['A'] = np.concatenate(As)
