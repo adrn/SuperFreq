@@ -426,8 +426,8 @@ class NAFF(object):
 
         return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
-    def find_integer_vectors(self, ffreqs, d, imax=15):
-        """ TODO """
+    def find_resonance_vectors(self, ffreqs, d, imax=15):
+        """ TODO: fix this """
 
         ntot = len(d)
 
