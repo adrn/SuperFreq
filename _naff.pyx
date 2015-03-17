@@ -11,22 +11,16 @@ from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
-# Standard library
-import os
-import sys
-
 # Third-party
 import numpy as np
-from astropy import log as logger
-import astropy.units as u
-
-# Project
-# ...
+cimport numpy as np
 
 __all__ = ['naff_frequency']
 
 cdef extern from "math.h":
     double sqrt(double)
+    double cos(double)
+    double sin(double)
 
 cdef extern from "../integrate/1d/simpson.h":
     double _simpson (double *y, double dx, int n)
@@ -56,10 +50,10 @@ cdef double phi_w(double w):
 
     for i in range(ntimes):
         # real part of integrand of Eq. 12
-        zreal[i] = chi[i] * (Re_f[i]*np.cos(w*tz[i]) + Im_f[i]*np.sin(w*tz[i]))
+        zreal[i] = chi[i] * (Re_f[i]*cos(w*tz[i]) + Im_f[i]*sin(w*tz[i]))
 
         # imag. part of integrand of Eq. 12
-        zimag[i] = chi[i] * (Im_f[i]*np.cos(w*tz[i]) - Re_f[i]*np.sin(w*tz[i]))
+        zimag[i] = chi[i] * (Im_f[i]*cos(w*tz[i]) - Re_f[i]*sin(w*tz[i]))
 
     Re_ans = _simpson(&zreal[0], dtz, ntimes)
     Im_ans = _simpson(&zimag[0], dtz, ntimes)
@@ -71,19 +65,18 @@ cdef double phi_w(double w):
 cpdef double py_phi_w(double w):
     return phi_w(w)
 
-cpdef double naff_frequency(double[::1] _tz, double[::1] _chi,
+cpdef double naff_frequency(double omega0, double[::1] _tz, double[::1] _chi,
                             double[::1] _Re_f, double[::1] _Im_f, double _T):
     global ntimes, omin, omax, dtz, T, signx
     global chi, tz, Re_f, Im_f, zreal, zimag
 
     # local variables
     ntimes = _tz.size
-    cdef double xmin = 0.
-    cdef double[::1] _zreal = np.zeros(ntimes)
-    cdef double[::1] _zimag = np.zeros(ntimes)
-
-    # test
-    cdef double true_omega
+    cdef:
+        double xmin = 0.
+        double odiff
+        double[::1] _zreal = np.zeros(ntimes)
+        double[::1] _zimag = np.zeros(ntimes)
 
     # global variables
     chi = &_chi[0]
@@ -96,24 +89,46 @@ cpdef double naff_frequency(double[::1] _tz, double[::1] _chi,
     dtz = tz[1] - tz[0]
 
     # local variables
-    true_omega = 0.581
-    omin = true_omega - np.pi/T
-    omax = true_omega + np.pi/T
+    omin = omega0 - np.pi/T
+    omax = omega0 + np.pi/T
+    odiff = omax - omin
+
     signx = 1.
+    local_min(0., 1., 1E-8, 1E-8, phi_w, &xmin)
+    if np.allclose(xmin, 0., atol=1E-3) or np.allclose(xmin, 1., atol=1E-3):
+        signx = -1.
+        local_min(0., 1., 1E-8, 1E-8, phi_w, &xmin)
+
+    # still hits edge
+    if np.allclose(xmin, 0., atol=1E-3) or np.allclose(xmin, 1., atol=1E-3):
+        raise RuntimeError("Frequency optimizer hit bound.")
+
+    xmin = xmin*(omax - omin) + omin
+    return xmin
+
+
 
     w = np.linspace(0, 1, 150)
     phi_vals = np.array([phi_w(ww) for ww in w])
 
+    import time
+
     import scipy.optimize as so
+    t0 = time.time()
     res = so.fmin_slsqp(py_phi_w, x0=0.5, acc=1E-9,
                         bounds=[(0,1)], disp=0, iter=100,
                         full_output=True)
+    print("scipy {0:.2f}".format(time.time() - t0))
     scipy_xmin,fx,its,imode,smode = res
     scipy_xmin = scipy_xmin*(omax - omin) + omin
 
-    local_min(0., 1., 1E-13, 1E-13, phi_w, &xmin)
+    t0 = time.time()
+    local_min(0., 1., 1E-8, 1E-8, phi_w, &xmin)
     xmin = xmin*(omax - omin) + omin
-    print(xmin)
+    print("cython {0:.2f}".format(time.time() - t0))
+    xmin = xmin*(omax - omin) + omin
+    print(scipy_xmin - xmin)
+    return 0.
 
     import matplotlib.pyplot as plt
     plt.plot(w*(omax - omin) + omin, phi_vals)
