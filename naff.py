@@ -329,7 +329,7 @@ class NAFF(object):
         Solve for the fundamental frequencies of each specified time series,
         `fs`. This is most commonly a 2D array, tuple, or iterable of individual
         complex time series. Any extra keyword arguments are passed to
-        `frecoder()`.
+        `NAFF.frecoder()`.
 
         Parameters
         ----------
@@ -338,6 +338,8 @@ class NAFF(object):
             along axis=0 equal to the number of time series.
         min_freq : numeric (optional)
             The minimum (absolute) frequency value to consider non-zero.
+        **frecoder_kwargs
+            Any extra keyword arguments are passed to `NAFF.frecoder()`.
 
         Returns
         -------
@@ -349,58 +351,55 @@ class NAFF(object):
         As = []
         amps = []
         phis = []
-        nqs = []
+        component_ix = []
 
-        ntot = 0
+        nfreqstotal = 0
         ndim = len(fs)
 
         for i in range(ndim):
-            nu,A,phi = self.frecoder(fs[i][:self.n], **frecoder_kwargs)
-            freqs.append(nu)
-            As.append(A*np.exp(1j*phi))
-            amps.append(A)
-            phis.append(phi)
-            nqs.append(np.zeros_like(nu) + i)
-            ntot += len(nu)
+            omega,A,phi = self.frecoder(fs[i][:self.n], **frecoder_kwargs)
+            freqs.append(omega)  # angular frequencies
+            As.append(A*np.exp(1j*phi))  # complex amplitudes
+            amps.append(A)  # abs amplitude
+            phis.append(phi)  # phase angle
+            component_ix.append(np.zeros_like(omega) + i)  # index of the component
+            nfreqstotal += len(omega)
 
-        d = np.zeros(ntot, dtype=zip(('freq','A','|A|','phi','n'),
-                                     ('f8','c8','f8','f8',np.int)))
+        d = np.zeros(nfreqstotal, dtype=zip(('freq','A','|A|','phi','n'),
+                                            ('f8','c8','f8','f8',np.int)))
         d['freq'] = np.concatenate(freqs)
         d['A'] = np.concatenate(As)
         d['|A|'] = np.concatenate(amps)
         d['phi'] = np.concatenate(phis)
-        d['n'] = np.concatenate(nqs).astype(int)
+        d['idx'] = np.concatenate(component_ix).astype(int)
 
         # sort terms by amplitude
-        d = d[d['|A|'].argsort()[::-1]]
+        d = d[d['|A|'].argsort()[::-1]]  # reverse argsort for descending
 
-        # assume largest amplitude is the first fundamental frequency
-        ffreq = np.zeros(ndim)
+        # container arrays for return
+        fund_freqs = np.zeros(ndim)
         ffreq_ixes = np.zeros(ndim, dtype=int)
-        nqs = np.zeros(ndim, dtype=int)
+        comp_ixes = np.zeros(ndim, dtype=int)
 
         # first frequency is largest amplitude, nonzero freq.
         ixes = np.where(np.abs(d['freq']) > min_freq)[0]
-        ffreq[0] = d[ixes[0]]['freq']
+        fund_freqs[0] = d[ixes[0]]['freq']
         ffreq_ixes[0] = ixes[0]
-        nqs[0] = d[ixes[0]]['n']
-        # print("1", d[ixes[0]])
+        comp_ixes[0] = d[ixes[0]]['idx']
 
         if ndim == 1:
-            return ffreq, d, ffreq_ixes
+            return fund_freqs, d, ffreq_ixes
 
         # choose the next nontrivially related frequency as the 2nd fundamental:
-        #   TODO: why min_freq=1E-6? this isn't well described in the papers...
         ixes = np.where((np.abs(d['freq']) > min_freq) &
-                        (d['n'] != d[ffreq_ixes[0]]['n']) &
-                        (np.abs(np.abs(ffreq[0]) - np.abs(d['freq'])) > min_freq))[0]
-        ffreq[1] = d[ixes[0]]['freq']
+                        (d['idx'] != d[ffreq_ixes[0]]['idx']) &
+                        (np.abs(np.abs(fund_freqs[0]) - np.abs(d['freq'])) > min_freq))[0]
+        fund_freqs[1] = d[ixes[0]]['freq']
         ffreq_ixes[1] = ixes[0]
-        nqs[1] = d[ixes[0]]['n']
-        # print("2", d[ixes[0]])
+        comp_ixes[1] = d[ixes[0]]['idx']
 
         if ndim == 2:
-            return ffreq[nqs.argsort()], d, ffreq_ixes[nqs.argsort()]
+            return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
         # # -------------
         # # brute-force method for finding third frequency: find maximum error in (n*f1 + m*f2 - f3)
@@ -426,20 +425,19 @@ class NAFF(object):
         # for now, third frequency is just largest amplitude frequency in the remaining dimension
         #   TODO: why 1E-6? this isn't well described in the papers...
         ixes = np.where((np.abs(d['freq']) > min_freq) &
-                        (d['n'] != d[ffreq_ixes[0]]['n']) &
-                        (d['n'] != d[ffreq_ixes[1]]['n']) &
-                        (np.abs(np.abs(ffreq[0]) - np.abs(d['freq'])) > 1E-6) &
-                        (np.abs(np.abs(ffreq[1]) - np.abs(d['freq'])) > 1E-6))[0]
+                        (d['idx'] != d[ffreq_ixes[0]]['idx']) &
+                        (d['idx'] != d[ffreq_ixes[1]]['idx']) &
+                        (np.abs(np.abs(fund_freqs[0]) - np.abs(d['freq'])) > 1E-6) &
+                        (np.abs(np.abs(fund_freqs[1]) - np.abs(d['freq'])) > 1E-6))[0]
 
-        ffreq[2] = d[ixes[0]]['freq']
+        fund_freqs[2] = d[ixes[0]]['freq']
         ffreq_ixes[2] = ixes[0]
-        nqs[2] = d[ixes[0]]['n']
-        # print("3", d[ixes[0]])
+        comp_ixes[2] = d[ixes[0]]['idx']
 
-        if not np.all(np.unique(sorted(nqs)) == [0,1,2]):
+        if not np.all(np.unique(sorted(comp_ixes)) == [0,1,2]):
             raise ValueError("Don't have x,y,z frequencies.")
 
-        return ffreq[nqs.argsort()], d, ffreq_ixes[nqs.argsort()]
+        return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
     def find_integer_vectors(self, ffreqs, d, imax=15):
         """ TODO """
