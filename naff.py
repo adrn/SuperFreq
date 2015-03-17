@@ -22,11 +22,10 @@ except ImportError:
     from numpy.fft import fft
     HAS_PYFFTW = False
 
-from scipy.integrate import simps
-
 # Project
 from .core import classify_orbit, align_circulation_with_z, check_for_primes
 from ._naff import naff_frequency
+from ..integrate.simpsgauss import simpson
 
 __all__ = ['NAFF', 'poincare_polar', 'orbit_to_freqs']
 
@@ -99,6 +98,7 @@ class NAFF(object):
 
         # re-center time so middle is 0
         self.tz = self.t - t_avg
+        self.dt = np.abs(self.tz[1] - self.tz[0])
 
         # time window size: time series goes from -T to T
         self.T = 0.5 * (self.t[-1] - self.t[0])
@@ -291,14 +291,14 @@ class NAFF(object):
 
         # First find complex conjugate of vector u2 and construct integrand
         integ = u1 * np.conj(u2) * self.chi
-        integ_r = integ.real
-        integ_i = integ.imag
+        integ_r = np.ascontiguousarray(integ.real)
+        integ_i = np.ascontiguousarray(integ.imag)
 
         # Integrate the real part
-        real = simps(integ_r, x=self.tz)
+        real = simpson(integ_r, self.dt)
 
         # Integrate Imaginary part
-        imag = simps(integ_i, x=self.tz)
+        imag = simpson(integ_i, self.dt)
 
         return (real + 1j*imag) / (2.*self.T)
 
