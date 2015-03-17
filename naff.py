@@ -324,7 +324,8 @@ class NAFF(object):
 
         return e_i*norm
 
-    def find_fundamental_frequencies(self, fs, min_freq=1E-6, **frecoder_kwargs):
+    def find_fundamental_frequencies(self, fs, min_freq=1E-6, min_freq_diff=1E-6,
+                                     **frecoder_kwargs):
         """
         Solve for the fundamental frequencies of each specified time series,
         `fs`. This is most commonly a 2D array, tuple, or iterable of individual
@@ -338,6 +339,8 @@ class NAFF(object):
             along axis=0 equal to the number of time series.
         min_freq : numeric (optional)
             The minimum (absolute) frequency value to consider non-zero.
+        min_freq_diff : numeric (optional)
+            The minimum (absolute) frequency difference to distinguish two frequencies.
         **frecoder_kwargs
             Any extra keyword arguments are passed to `NAFF.frecoder()`.
 
@@ -390,10 +393,12 @@ class NAFF(object):
         if ndim == 1:
             return fund_freqs, d, ffreq_ixes
 
-        # choose the next nontrivially related frequency as the 2nd fundamental:
+        # choose the next nontrivially related frequency in a different component
+        #   as the 2nd fundamental frequency
+        abs_freq1 = np.abs(fund_freqs[0])
         ixes = np.where((np.abs(d['freq']) > min_freq) &
-                        (d['idx'] != d[ffreq_ixes[0]]['idx']) &
-                        (np.abs(np.abs(fund_freqs[0]) - np.abs(d['freq'])) > min_freq))[0]
+                        (d['idx'] != d[ffreq_ixes[0]]['idx']) &  # different component index
+                        (np.abs(abs_freq1 - np.abs(d['freq'])) > min_freq_diff))[0]
         fund_freqs[1] = d[ixes[0]]['freq']
         ffreq_ixes[1] = ixes[0]
         comp_ixes[1] = d[ixes[0]]['idx']
@@ -401,41 +406,17 @@ class NAFF(object):
         if ndim == 2:
             return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
-        # # -------------
-        # # brute-force method for finding third frequency: find maximum error in (n*f1 + m*f2 - f3)
-
-        # # first define meshgrid of integer vectors
-        # nvecs = np.vstack(np.vstack(np.mgrid[-imax:imax+1,-imax:imax+1].T))
-        # err = np.zeros(ntot)
-        # for i in range(ffreq_ixes[1]+1, ntot):
-        #     # find best solution for each integer vector
-        #     err[i] = np.abs(d[i]['freq'] - nvecs.dot(ffreq[:2])).min()
-
-        #     if err[i] > 1E-6:
-        #         break
-
-        #     i = np.nan
-
-        # if np.isnan(i):
-        #     raise ValueError("Failed to find third fundamental frequency.")
-
-        # ffreq[2] = d[i]['freq']
-        # ffreq_ixes[2] = i
-
-        # for now, third frequency is just largest amplitude frequency in the remaining dimension
-        #   TODO: why 1E-6? this isn't well described in the papers...
+        # third frequency is the largest amplitude frequency in the remaining component dimension
+        abs_freq2 = np.abs(fund_freqs[1])
         ixes = np.where((np.abs(d['freq']) > min_freq) &
-                        (d['idx'] != d[ffreq_ixes[0]]['idx']) &
-                        (d['idx'] != d[ffreq_ixes[1]]['idx']) &
-                        (np.abs(np.abs(fund_freqs[0]) - np.abs(d['freq'])) > 1E-6) &
-                        (np.abs(np.abs(fund_freqs[1]) - np.abs(d['freq'])) > 1E-6))[0]
+                        (d['idx'] != d[ffreq_ixes[0]]['idx']) &  # different component index
+                        (d['idx'] != d[ffreq_ixes[1]]['idx']) &  # different component index
+                        (np.abs(abs_freq1 - np.abs(d['freq'])) > min_freq_diff) &
+                        (np.abs(abs_freq2 - np.abs(d['freq'])) > min_freq_diff))[0]
 
         fund_freqs[2] = d[ixes[0]]['freq']
         ffreq_ixes[2] = ixes[0]
         comp_ixes[2] = d[ixes[0]]['idx']
-
-        if not np.all(np.unique(sorted(comp_ixes)) == [0,1,2]):
-            raise ValueError("Don't have x,y,z frequencies.")
 
         return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
