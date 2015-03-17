@@ -16,11 +16,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.fft import fftfreq
 try:
-    from pyfftw.interfaces.numpy_fft import fft
+    import pyfftw
+    HAS_PYFFTW = True
 except ImportError:
     from numpy.fft import fft
+    HAS_PYFFTW = False
 
-import scipy.optimize as so
 from scipy.integrate import simps
 
 # Project
@@ -130,10 +131,20 @@ class NAFF(object):
             raise ValueError("Length of complex function doesn't match length of times.")
 
         # take Fourier transform of input (complex) function f
-        t1 = time.time()
-        fff = fft(f) / np.sqrt(self.n)
+        if HAS_PYFFTW:
+            _f = pyfftw.n_byte_align_empty(f.size, 16, 'complex128')
+            _f[:] = f
+
+            fft_obj = pyfftw.builders.fft(f, overwrite_input=True,
+                                          planner_effort='FFTW_ESTIMATE')
+            fff = fft_obj() / np.sqrt(self.n)
+        else:
+            t1 = time.time()
+            fff = fft(f) / np.sqrt(self.n)
+            logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
+
+        # frequencies
         omegas = 2*np.pi*fftfreq(f.size, self.t[1]-self.t[0])
-        logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
 
         # wmax is just an initial guess for optimization
         xyf = np.abs(fff)
