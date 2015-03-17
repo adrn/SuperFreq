@@ -25,6 +25,7 @@ from scipy.integrate import simps
 
 # Project
 from .core import classify_orbit, align_circulation_with_z, check_for_primes
+from ._naff import naff_frequency
 
 __all__ = ['NAFF', 'poincare_polar', 'orbit_to_freqs']
 
@@ -159,126 +160,37 @@ class NAFF(object):
         Re_f = f.real.copy()
         Im_f = f.imag.copy()
 
-        # --------- DEBUG ------------
-        xf = fff.real.copy()
-        yf = fff.imag.copy()
+        # # --------- DEBUG ------------
+        # xf = fff.real.copy()
+        # yf = fff.imag.copy()
 
-        wmax_orig = wmax
-        const2 = 1. / np.sqrt(self.n-1.)
-        xmax = -10000.
-        for i in range(self.n):
-            xf[i] = (-1.)**i * (const2*xf[i])
-            yf[i] = (-1.)**i * (const2*yf[i])
+        # wmax_orig = wmax
+        # const2 = 1. / np.sqrt(self.n-1.)
+        # xmax = -10000.
+        # for i in range(self.n):
+        #     xf[i] = (-1.)**i * (const2*xf[i])
+        #     yf[i] = (-1.)**i * (const2*yf[i])
 
-            if np.abs(xf[i]) > xmax or np.abs(yf[i]) > xmax:
-                xmax = max(np.abs(xf[i]), np.abs(yf[i]))
-                wmax = i
+        #     if np.abs(xf[i]) > xmax or np.abs(yf[i]) > xmax:
+        #         xmax = max(np.abs(xf[i]), np.abs(yf[i]))
+        #         wmax = i
 
-        # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
-        # signx = np.sign(xf[wmax])
-        signx = 1.
-        omega0_2 = omegas[wmax]
+        # # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
+        # # signx = np.sign(xf[wmax])
+        # signx = 1.
+        # omega0_2 = omegas[wmax]
 
-        # 'reload time series'
-        wmax = wmax_orig
-        Re_f = f.real
-        Im_f = f.imag
-        # --------- DEBUG ------------
+        # # 'reload time series'
+        # wmax = wmax_orig
+        # Re_f = f.real
+        # Im_f = f.imag
+        # # --------- DEBUG ------------
 
         # frequency associated with the peak index
         omega0 = omegas[wmax]
 
-        # # now that we have a guess for the maximum, convolve with Hanning filter and re-solve
-        # signx = Re_f[wmax]/np.abs(Re_f[wmax])
-
-        # window around estimated best frequency
-        omin = omega0 - np.pi/self.T
-        omax = omega0 + np.pi/self.T
-
-        def transform(x):
-            return (x - omin) / (omax - omin)
-
-        def invtransform(y):
-            return y*(omax - omin) + omin
-
-        def phi_w(w):
-            """ This function numerically computes phi(ω), as in
-                Eq. 12 in Valluri & Merritt (1998).
-            """
-            w = invtransform(w)
-
-            # real part of integrand of Eq. 12
-            zreal = self.chi * (Re_f*np.cos(w*self.tz) + Im_f*np.sin(w*self.tz))
-            Re_ans = simps(zreal, x=self.tz)
-
-            # imag. part of integrand of Eq. 12
-            zimag = self.chi * (Im_f*np.cos(w*self.tz) - Re_f*np.sin(w*self.tz))
-            Im_ans = simps(zimag, x=self.tz)
-
-            ans = np.sqrt(Re_ans**2 + Im_ans**2)
-            # ans = Re_ans
-
-            return -(ans*signx) / (2.*self.T)
-            # return -np.abs(ans) / (2.*self.T)
-
-        w = np.linspace(0, 1, 50)
-        phi_vals = np.array([phi_w(ww) for ww in w])
-        phi_ix = phi_vals.argmin()
-
-        if np.all(np.abs(phi_vals) < 1E-10):
-            init_w = 0.5
-        else:
-            init_w = w[phi_ix]
-
-        fac = 1.
-        res = so.fmin_slsqp(phi_w, x0=init_w, acc=1E-9,
-                            bounds=[(0,1)], disp=0, iter=50,
-                            full_output=True)
-        freq,fx,its,imode,smode = res
-        if np.allclose(freq, 0.) or np.allclose(freq, 1.):
-            logger.debug("Freq. optimizer hit bound.")
-            imode = 9999
-            fac = -1.
-        freq = invtransform(freq)
-
-        failure = False
-        # failed by starting at minimum, try instead starting from middle
-        if imode != 0:
-            init_w = 0.5
-            if fac < 0:
-                res = so.fmin_slsqp(lambda w: -phi_w(w), x0=init_w, acc=1E-9,
-                                    bounds=[(0,1)], disp=0, iter=100,
-                                    full_output=True)
-            else:
-                res = so.fmin_slsqp(phi_w, x0=init_w, acc=1E-9,
-                                    bounds=[(0,1)], disp=0, iter=100,
-                                    full_output=True)
-            freq,fx,its,imode,smode = res
-            if np.allclose(freq, 0.) or np.allclose(freq, 1.):
-                failure = True
-
-            freq = invtransform(freq)
-
-        # -------------------------------------------------------------
-        if self.debug:
-            w = np.linspace(0, 1, 100)
-            fig,ax = plt.subplots(1,1,figsize=(12,8))
-            ax.plot(invtransform(w), np.array([phi_w(ww) for ww in w]))
-            ax.axvline(freq)
-            ax.axvline(invtransform(init_w), linestyle='dashed')
-            ax.set_title(str(imode))
-            fig.savefig(os.path.join(self.debug_path, "chi-{}.png".format(self._f_counter)))
-            self._f_counter += 1
-        # -------------------------------------------------------------
-
-        if failure:
-            raise RuntimeError("Frequency optimizer hit bound.")
-
-        if imode != 0:
-            raise ValueError("Function minimization to find best frequency failed with:\n"
-                             "\t {} : {}".format(imode, smode))
-
-        return freq[0]
+        freq = naff_frequency(omega0, self.tz, self.chi, Re_f, Im_f, self.T)
+        return freq
 
     def frecoder(self, f, nintvec=12, break_condition=1E-7):
         """
