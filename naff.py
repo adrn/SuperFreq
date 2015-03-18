@@ -26,29 +26,13 @@ HAS_PYFFTW = False
 # Project
 from .core import classify_orbit, align_circulation_with_z, check_for_primes
 from ._naff import naff_frequency
+from ..coordinates import poincare_polar
 from ..integrate.simpsgauss import simpson
 
-__all__ = ['NAFF', 'poincare_polar', 'orbit_to_freqs']
+__all__ = ['NAFF', 'orbit_to_freqs']
 
 def hanning(x):
     return 1 + np.cos(x)
-
-def poincare_polar(w):
-    ndim = w.shape[-1]//2
-
-    R = np.sqrt(w[...,0]**2 + w[...,1]**2)
-    # phi = np.arctan2(w[...,1], w[...,0])
-    phi = np.arctan2(w[...,0], w[...,1])
-
-    vR = (w[...,0]*w[...,0+ndim] + w[...,1]*w[...,1+ndim]) / R
-    vPhi = w[...,0]*w[...,1+ndim] - w[...,1]*w[...,0+ndim]
-
-    fs = []
-    fs.append(R + 1j*vR)
-    fs.append(np.sqrt(2*np.abs(vPhi))*(np.cos(phi) + 1j*np.sin(phi)))  # PP
-    fs.append(w[...,2] + 1j*w[...,2+ndim])
-
-    return fs
 
 class NAFF(object):
     """
@@ -431,7 +415,7 @@ class NAFF(object):
         Given the fundamental frequencies, and table of all frequency
         components, determine how each frequency component is related
         to the fundamental frequencies (e.g., determine the integer
-        vector for each frequency such that :math:`n\cdot \Omega \approx 0.`.
+        vector for each frequency such that :math:`n\cdot \Omega \approx 0.`).
 
         Parameters
         ----------
@@ -503,8 +487,9 @@ def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
     if is_tube:
         # need to flip coordinates until circulation is around z axis
         new_ws = align_circulation_with_z(w, circ)
+        new_ws = poincare_polar(new_ws)
+        fs = [(new_ws[:,j] + 1j*new_ws[:,j+3]) for j in range(3)]
 
-        fs = poincare_polar(new_ws)
         if silently_fail:
             try:
                 logger.info('Solving for Rφz frequencies...')
