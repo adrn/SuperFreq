@@ -399,7 +399,7 @@ class NAFF(object):
                         (np.abs(abs_freq1 - np.abs(d['freq'])) > min_freq_diff) &
                         (np.abs(abs_freq2 - np.abs(d['freq'])) > min_freq_diff))[0]
 
-        if len(ixes) == 0:
+        if len(ixes) == 0 and self.keep_calm:
             # may be a planar orbit
             logger.warning("May be a planar orbit")
             return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
