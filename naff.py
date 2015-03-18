@@ -426,8 +426,20 @@ class NAFF(object):
 
         return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
-    def find_resonance_vectors(self, ffreqs, d, imax=15):
-        """ TODO: fix this """
+    def find_integer_vectors(self, fundamental_freqs, freq_table, max_int=15):
+        r"""
+        Given the fundamental frequencies, and table of all frequency
+        components, determine how each frequency component is related
+        to the fundamental frequencies (e.g., determine the integer
+        vector for each frequency such that :math:`n\cdot \Omega \approx 0.`.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        """
 
         ntot = len(d)
 
