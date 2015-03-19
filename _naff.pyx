@@ -2,13 +2,6 @@
 
 from __future__ import division, print_function
 
-""" Note: I got stuck because of the same issue found in the regular code. Using
-    the full complex magnitude of phi(w) does better for complex orbits, but for
-    a simple case where I construct a time series by hand (with amplitudes and
-    frequencies), phi(w) looks like somone took an abs() to the function. e.g.,
-    it looks double humped / crosses zero.
-"""
-
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Third-party
@@ -53,20 +46,20 @@ cdef double phi_w(double w):
         zreal[i] = chi[i] * (Re_f[i]*cos(w*tz[i]) + Im_f[i]*sin(w*tz[i]))
 
         # imag. part of integrand of Eq. 12
-        zimag[i] = chi[i] * (Im_f[i]*cos(w*tz[i]) - Re_f[i]*sin(w*tz[i]))
+        # zimag[i] = chi[i] * (Im_f[i]*cos(w*tz[i]) - Re_f[i]*sin(w*tz[i]))
 
     Re = _simpson(&zreal[0], dtz, ntimes)
-    Im = _simpson(&zimag[0], dtz, ntimes)
-
-    ans = sqrt(Re*Re + Im*Im)
+    # Im = _simpson(&zimag[0], dtz, ntimes)
+    # ans = sqrt(Re*Re + Im*Im)
+    ans = Re
 
     return -(ans*signx) / (2.*T)
 
 cpdef double py_phi_w(double w):
     return phi_w(w)
 
-cpdef double naff_frequency(double omega0, double[::1] _tz, double[::1] _chi,
-                            double[::1] _Re_f, double[::1] _Im_f, double _T):
+cpdef naff_frequency(double omega0, double[::1] _tz, double[::1] _chi,
+                     double[::1] _Re_f, double[::1] _Im_f, double _T):
     global ntimes, omin, omax, dtz, T, signx, odiff
     global chi, tz, Re_f, Im_f, zreal, zimag
 
