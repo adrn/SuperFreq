@@ -65,7 +65,7 @@ class NAFF(object):
 
     """
 
-    def __init__(self, t, keep_calm=True):
+    def __init__(self, t, keep_calm=False):
 
         n = len(t)
         self.n = check_for_primes(n)
