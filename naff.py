@@ -12,16 +12,7 @@ import time
 # Third-party
 from astropy import log as logger
 import numpy as np
-from numpy.fft import fftfreq
-# try:
-#     import pyfftw
-#     HAS_PYFFTW = True
-# except ImportError:
-#     from numpy.fft import fft
-#     HAS_PYFFTW = False
-from numpy.fft import fft
-HAS_PYFFTW = False
-# TODO: enable and fix PyFFTW support -- current implementation is broken / gives wrong phi(w)
+from numpy.fft import fft, fftfreq
 
 # Project
 from .core import classify_orbit, align_circulation_with_z, check_for_primes
@@ -121,14 +112,6 @@ class NAFF(object):
             f = f[:self.n]
 
         # take Fourier transform of input (complex) function f
-        # if HAS_PYFFTW:
-        #     _f = pyfftw.n_byte_align_empty(f.size, 16, 'complex128')
-        #     _f[:] = f
-
-        #     fft_obj = pyfftw.builders.fft(f, overwrite_input=True,
-        #                                   planner_effort='FFTW_ESTIMATE')
-        #     fff = fft_obj() / np.sqrt(self.n)
-        # else:
         t1 = time.time()
         fff = fft(f) / np.sqrt(self.n)
         logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
@@ -136,20 +119,21 @@ class NAFF(object):
         # frequencies
         omegas = 2*np.pi*fftfreq(f.size, self.dt)
 
-        # wmax is just an initial guess for optimization
-        xyf = np.abs(fff)
-        wmax = xyf.argmax()
-        if np.allclose(xyf[wmax], 0):
+        # omega_max_ix is the initial guess / centering frequency for optimization
+        #   against the Hanning-convolved Fourier spectrum
+        abs_fff = np.abs(fff)
+        omega_max_ix = abs_fff.argmax()
+        if np.allclose(abs_fff[omega_max_ix], 0):
             # return early -- "this may be an axial or planar orbit"
-            logger.log(0, "Returning early - may be an axial or planar orbit?")
+            logger.debug("Returning early - may be an axial or planar orbit?")
             return 0.
+
+        # frequency associated with the peak index
+        omega0 = omegas[omega_max_ix]
 
         # real and complex part of input time series
         Re_f = f.real.copy()
         Im_f = f.imag.copy()
-
-        # frequency associated with the peak index
-        omega0 = omegas[wmax]
 
         freq = naff_frequency(omega0, self.tz, self.chi, Re_f, Im_f, self.T)
         return freq
