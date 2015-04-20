@@ -22,8 +22,8 @@ from ..integrate.simpsgauss import simpson
 
 __all__ = ['NAFF', 'orbit_to_freqs']
 
-def hanning(x):
-    return 1 + np.cos(x)
+def hamming(t_T, p):
+    return 2.**p * (np.math.factorial(p))**2. / np.math.factorial(2*p) * (1. + np.cos(np.pi*t_T))**p
 
 class NAFF(object):
     """
@@ -49,6 +49,9 @@ class NAFF(object):
     ----------
     t : array_like
         Array of times.
+    p : int (optional)
+        Coefficient for Hamming filter -- default p=1 which is a Hann filter,
+        used by Laskar and Valluri/Merritt.
     keep_calm : bool (optional)
         If something fails when solving for the frequency of a given component,
         ``keep_calm`` determines whether to throw a RuntimeError or exit gracefully.
@@ -56,7 +59,7 @@ class NAFF(object):
 
     """
 
-    def __init__(self, t, keep_calm=False):
+    def __init__(self, t, p=1, keep_calm=False):
 
         n = len(t)
         self.n = check_for_primes(n)
@@ -78,15 +81,16 @@ class NAFF(object):
         # time window size: time series goes from -T to T
         self.T = 0.5 * (self.t[-1] - self.t[0])
 
-        # pre-compute values of Hanning filter for this window
-        self.chi = hanning(self.tz * np.pi/self.T)  # the argument is 2π/(2T)
+        # pre-compute values of Hamming filter for this window
+        # see, e.g., C. Hunter (2001)
+        self.chi = hamming(self.tz/self.T, p)
 
         # when solving for frequencies and removing components from the time series,
         #   if something fails for a given component and keep_calm is set to True,
         #   NAFF will exit gracefully instead of throwing a RuntimeError
         self.keep_calm = keep_calm
 
-    def frequency(self, f):
+    def frequency(self, f, omega0=None):
         """
         Find the most significant frequency of a (complex) time series, :math:`f(t)`,
         by Fourier transforming the function convolved with a Hanning filter and
@@ -98,6 +102,8 @@ class NAFF(object):
         ----------
         f : array_like
             Complex time-series, :math:`q(t) + i p(t)`.
+        omega0 : numeric (optional)
+            Force finding the peak around the input freuency.
 
         Returns
         -------
@@ -113,29 +119,42 @@ class NAFF(object):
 
         # take Fourier transform of input (complex) function f
         t1 = time.time()
-        fff = fft(f) / np.sqrt(self.n)
+        fff = fft(f) / np.sqrt(self.n)  # NUMPY FFT
         logger.log(0, "Took {} seconds to FFT.".format(time.time()-t1))
 
         # frequencies
         omegas = 2*np.pi*fftfreq(f.size, self.dt)
 
-        # omega_max_ix is the initial guess / centering frequency for optimization
-        #   against the Hanning-convolved Fourier spectrum
-        abs_fff = np.abs(fff)
-        omega_max_ix = abs_fff.argmax()
-        if np.allclose(abs_fff[omega_max_ix], 0):
-            # return early -- "this may be an axial or planar orbit"
-            logger.debug("Returning early - may be an axial or planar orbit?")
-            return 0.
+        if omega0 is None:
+            # omega_max_ix is the initial guess / centering frequency for optimization
+            #   against the Hanning-convolved Fourier spectrum
+            abs_fff = np.abs(fff)
+            omega_max_ix = abs_fff.argmax()
+            if np.allclose(abs_fff[omega_max_ix], 0):
+                # return early -- "this may be an axial or planar orbit"
+                logger.debug("Returning early - may be an axial or planar orbit?")
+                return 0.
 
-        # frequency associated with the peak index
-        omega0 = omegas[omega_max_ix]
+            # frequency associated with the peak index
+            omega0 = omegas[omega_max_ix]
 
         # real and complex part of input time series
         Re_f = f.real.copy()
         Im_f = f.imag.copy()
 
+        # for debugging -- plot FFT
+        # try:
+        #     freq = naff_frequency(omega0, self.tz, self.chi, Re_f, Im_f, self.T)
+        # except RuntimeError:
+        #     import matplotlib.pyplot as plt
+        #     plt.clf()
+        #     plt.plot(omegas, np.abs(fff), marker=None)
+        #     plt.xscale('symlog')
+        #     plt.axvline(omega0)
+        #     plt.show()
+        #     raise
         freq = naff_frequency(omega0, self.tz, self.chi, Re_f, Im_f, self.T)
+
         return freq
 
     def frecoder(self, f, nintvec=12, break_condition=1E-7):
