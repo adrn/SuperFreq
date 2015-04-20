@@ -46,12 +46,12 @@ cdef double phi_w(double w):
         zreal[i] = chi[i] * (Re_f[i]*cos(w*tz[i]) + Im_f[i]*sin(w*tz[i]))
 
         # imag. part of integrand of Eq. 12
-        # zimag[i] = chi[i] * (Im_f[i]*cos(w*tz[i]) - Re_f[i]*sin(w*tz[i]))
+        zimag[i] = chi[i] * (Im_f[i]*cos(w*tz[i]) - Re_f[i]*sin(w*tz[i]))
 
     Re = _simpson(&zreal[0], dtz, ntimes)
-    # Im = _simpson(&zimag[0], dtz, ntimes)
-    # ans = sqrt(Re*Re + Im*Im)
-    ans = Re
+    # ans = Re
+    Im = _simpson(&zimag[0], dtz, ntimes)
+    ans = sqrt(Re*Re + Im*Im)
 
     return -(ans*signx) / (2.*T)
 
@@ -81,8 +81,8 @@ cpdef naff_frequency(double omega0, double[::1] _tz, double[::1] _chi,
     dtz = tz[1] - tz[0]
 
     # local variables
-    omin = omega0 - np.pi/T
-    omax = omega0 + np.pi/T
+    omin = omega0 - 4*np.pi/T
+    omax = omega0 + 4*np.pi/T
     odiff = omax - omin
 
     signx = 1.
@@ -93,29 +93,30 @@ cpdef naff_frequency(double omega0, double[::1] _tz, double[::1] _chi,
 
     # still hits edge
     if np.allclose(xmin, 0., atol=1E-3) or np.allclose(xmin, 1., atol=1E-3):
+        # testing
+        # import matplotlib.pyplot as plt
+        # w = np.linspace(0, 1, 150)
+        # phi_vals = np.array([phi_w(ww) for ww in w])
+        # # phi_vals2 = np.array([phi_w_derp(ww, _tz) for ww in w])
+
+        # plt.clf()
+        # plt.plot(w*odiff + omin, phi_vals, label='cython')
+        # # plt.plot(w*odiff + omin, phi_vals2, label='python')
+        # # plt.axvline(3.6505306, color='g')
+        # plt.axvline(omega0, color='b')
+        # plt.axvline(xmin*odiff + omin, color='r')
+
+        # plt.legend()
+        # plt.show()
+        # testing
         raise RuntimeError("Frequency optimizer hit bound.")
 
     xmin = xmin*odiff + omin
 
+    # FOR PRODUCTION:
     return xmin
 
-    # testing
-    import matplotlib.pyplot as plt
-    w = np.linspace(0, 1, 150)
-    phi_vals = np.array([phi_w(ww) for ww in w])
-    phi_vals2 = np.array([phi_w_derp(ww, _tz) for ww in w])
-
-    plt.clf()
-    plt.plot(w*odiff + omin, phi_vals, label='cython')
-    plt.plot(w*odiff + omin, phi_vals2, label='python')
-    plt.axvline(3.6505306, color='g')
-    plt.axvline(omega0, color='b')
-    plt.axvline(xmin, color='r')
-
-    plt.legend()
-    plt.show()
-    # testing
-
+    # Testing stuff:
     import time
 
     import scipy.optimize as so
@@ -127,12 +128,9 @@ cpdef naff_frequency(double omega0, double[::1] _tz, double[::1] _chi,
     scipy_xmin,fx,its,imode,smode = res
     scipy_xmin = scipy_xmin*odiff + omin
 
-    t0 = time.time()
-    local_min(0., 1., 1E-8, 1E-8, phi_w, &xmin)
-    xmin = xmin*odiff + omin
-    print("cython {0:.2f}".format(time.time() - t0))
-    xmin = xmin*odiff + omin
-    print(scipy_xmin - xmin)
+    import sys
+    sys.exit(0)
+
     return 0.
 
     import matplotlib.pyplot as plt
