@@ -65,8 +65,8 @@ class NAFF(object):
         self.n = check_for_primes(n)
 
         if self.n != len(t):
-            logger.info("Truncating time series to length={0} to avoid large prime divisors."
-                        .format(self.n))
+            logger.debug("Truncating time series to length={0} to avoid large prime divisors."
+                         .format(self.n))
 
         # array of times
         self.t = t[:self.n]
