@@ -195,8 +195,8 @@ class NAFF(object):
         phi = np.zeros(nintvec)
 
         fk = f.copy()
-        logger.debug("-"*50)
-        logger.debug("k    ωk    Ak    φk(deg)    ak")
+        logger.log(5, "-"*50)
+        logger.log(5, "k    ωk    Ak    φk(deg)    ak")
         broke = False
         for k in range(nintvec):
             try:
@@ -222,8 +222,8 @@ class NAFF(object):
             # remove the new orthogonal frequency component from the f_k
             fk -= ab*ecap[k]
 
-            logger.debug("{}  {:.6f}  {:.6f}  {:.2f}  {:.6f}"
-                         .format(k,omega[k],A[k],np.degrees(phi[k]),ab))
+            logger.log(5, "{}  {:.6f}  {:.6f}  {:.2f}  {:.6f}"
+                       .format(k,omega[k],A[k],np.degrees(phi[k]),ab))
 
             if break_condition is not None and A[k] < break_condition:
                 broke = True
