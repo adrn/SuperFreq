@@ -17,7 +17,7 @@ from numpy.fft import fft, fftfreq
 # Project
 from .core import classify_orbit, align_circulation_with_z, check_for_primes
 from ._naff import naff_frequency
-from ..coordinates import poincare_polar
+from ..coordinates import cartesian_to_poincare_polar
 from ..integrate.simpsgauss import simpson
 
 __all__ = ['NAFF', 'orbit_to_freqs']
@@ -490,7 +490,7 @@ def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
     if is_tube:
         # need to flip coordinates until circulation is around z axis
         new_ws = align_circulation_with_z(w, circ)
-        new_ws = poincare_polar(new_ws)
+        new_ws = cartesian_to_poincare_polar(new_ws)
         fs = [(new_ws[:,j] + 1j*new_ws[:,j+3]) for j in range(3)]
 
         if silently_fail:
