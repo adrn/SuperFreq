@@ -1,7 +1,5 @@
 # coding: utf-8
 
-""" Port of NAFF to Python """
-
 from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
@@ -20,15 +18,16 @@ from ._naff import naff_frequency
 from ..coordinates import cartesian_to_poincare_polar
 from ..integrate.simpsgauss import simpson
 
-__all__ = ['NAFF', 'orbit_to_freqs']
+__all__ = ['SuperFreq', 'orbit_to_freqs']
 
 def hamming(t_T, p):
     return 2.**p * (np.math.factorial(p))**2. / np.math.factorial(2*p) * (1. + np.cos(np.pi*t_T))**p
 
-class NAFF(object):
+class SuperFreq(object):
     """
-    Implementation of the Numerical Analysis of Fundamental Frequencies (NAFF)
-    method of Laskar, later modified by Valluri and Merritt (see references below).
+    Implementation of the Numerical Analysis of Fundamental Frequencies
+    method of Laskar, later modified by Valluri and Merritt (see references below),
+    with some slight modifications.
 
     This algorithm attempts to numerically find the fundamental frequencies of an
     input orbit (time series) and can also find approximate actions for the orbit.
@@ -87,7 +86,7 @@ class NAFF(object):
 
         # when solving for frequencies and removing components from the time series,
         #   if something fails for a given component and keep_calm is set to True,
-        #   NAFF will exit gracefully instead of throwing a RuntimeError
+        #   SuperFreq will exit gracefully instead of throwing a RuntimeError
         self.keep_calm = keep_calm
 
     def frequency(self, f, omega0=None):
@@ -164,7 +163,7 @@ class NAFF(object):
         it from the time series.
 
         This function is meant to be the same as the subroutine FRECODER in
-        Monica Valluri's Fortran NAFF routines.
+        Monica Valluri's Fortran SuperFreq routines.
 
         Parameters
         ----------
@@ -318,7 +317,7 @@ class NAFF(object):
         Solve for the fundamental frequencies of each specified time series,
         `fs`. This is most commonly a 2D array, tuple, or iterable of individual
         complex time series. Any extra keyword arguments are passed to
-        `NAFF.frecoder()`.
+        `SuperFreq.frecoder()`.
 
         Parameters
         ----------
@@ -330,7 +329,7 @@ class NAFF(object):
         min_freq_diff : numeric (optional)
             The minimum (absolute) frequency difference to distinguish two frequencies.
         **frecoder_kwargs
-            Any extra keyword arguments are passed to `NAFF.frecoder()`.
+            Any extra keyword arguments are passed to `SuperFreq.frecoder()`.
 
         Returns
         -------
@@ -455,7 +454,7 @@ def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
     function tries to figure out whether the input orbit is a tube or box orbit and
     then uses the appropriate set of coordinates (Poincaré polar coordinates for tube,
     ordinary Cartesian for box). Any extra keyword arguments (``kwargs``) are passed
-    to `NAFF.find_fundamental_frequencies`.
+    to `SuperFreq.find_fundamental_frequencies`.
 
     Parameters
     ----------
@@ -466,9 +465,9 @@ def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
     force_box : bool (optional)
         Force the routine to assume the orbit is a box orbit. Default is ``False``.
     silently_fail : bool (optional)
-        Return NaN's and None's if NAFF fails, rather than raising an exception.
+        Return NaN's and None's if SuperFreq fails, rather than raising an exception.
     **kwargs
-        Any extra keyword arguments are passed to `NAFF.find_fundamental_frequencies`.
+        Any extra keyword arguments are passed to `SuperFreq.find_fundamental_frequencies`.
 
     """
 
@@ -483,7 +482,7 @@ def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
         circ = classify_orbit(w)
         is_tube = np.any(circ)
 
-    naff = NAFF(t)
+    naff = SuperFreq(t)
 
     d = None
     ixes = None
