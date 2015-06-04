@@ -13,10 +13,9 @@ import numpy as np
 from numpy.fft import fft, fftfreq
 
 # Project
-from .core import classify_orbit, align_circulation_with_z, check_for_primes
+from .core import check_for_primes
 from ._naff import naff_frequency
-from ..coordinates import cartesian_to_poincare_polar
-from ..integrate.simpsgauss import simpson
+from .simpsgauss import simpson
 
 __all__ = ['SuperFreq', 'orbit_to_freqs']
 
@@ -456,6 +455,8 @@ def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
     ordinary Cartesian for box). Any extra keyword arguments (``kwargs``) are passed
     to `SuperFreq.find_fundamental_frequencies`.
 
+    Requires Gary.
+
     Parameters
     ----------
     t : array_like
@@ -470,6 +471,9 @@ def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
         Any extra keyword arguments are passed to `SuperFreq.find_fundamental_frequencies`.
 
     """
+
+    from gary.dynamics import classify_orbit, align_circulation_with_z
+    from gary.coordinates import cartesian_to_poincare_polar
 
     if w.ndim == 3:
         # remove extra length-1 dimension (assumed to be axis=1)
