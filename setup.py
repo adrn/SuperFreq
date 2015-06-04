@@ -19,7 +19,7 @@ numpy_base_path = os.path.split(np.__file__)[0]
 numpy_incl_path = os.path.join(numpy_base_path, "core", "include")
 
 extensions = []
-extensions.append(Extension("superfreq",
+extensions.append(Extension("superfreq.*",
                             ["superfreq/*.pyx",
                              "superfreq/brent.c",
                              "superfreq/simpson.c"],
