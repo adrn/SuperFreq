@@ -62,7 +62,7 @@ cpdef double py_phi_w(double w):
 cpdef naff_frequency(double omega0, double[::1] _tz, double[::1] _chi,
                      double[::1] _Re_f, double[::1] _Im_f, double _T):
     """
-    Solve for the frequency of the peak closes to `omega0`
+    Solve for the frequency of the peak closes to omega0.
 
     """
 
@@ -118,31 +118,4 @@ cpdef naff_frequency(double omega0, double[::1] _tz, double[::1] _chi,
         raise RuntimeError("Frequency optimizer hit bound.")
 
     xmin = xmin*odiff + omin
-
-    # FOR PRODUCTION:
     return xmin
-
-    # # Testing stuff:
-    # import time
-
-    # import scipy.optimize as so
-    # t0 = time.time()
-    # res = so.fmin_slsqp(py_phi_w, x0=0.5, acc=1E-9,
-    #                     bounds=[(0,1)], disp=0, iter=100,
-    #                     full_output=True)
-    # print("scipy {0:.2f}".format(time.time() - t0))
-    # scipy_xmin,fx,its,imode,smode = res
-    # scipy_xmin = scipy_xmin*odiff + omin
-
-    # import sys
-    # sys.exit(0)
-
-    # return 0.
-
-    # import matplotlib.pyplot as plt
-    # plt.plot(w*odiff + omin, phi_vals)
-    # plt.axvline(true_omega, color='g')
-    # plt.axvline(xmin, color='r', linestyle='dashed')
-    # plt.axvline(scipy_xmin, color='b', linestyle='dashed')
-    # plt.show()
-
