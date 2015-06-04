@@ -16,7 +16,7 @@ cdef extern from "math.h":
     double cos(double)
     double sin(double)
 
-cdef extern from "../integrate/1d/simpson.h":
+cdef extern from "simpson.h":
     double _simpson (double *y, double dx, int n)
 
 cdef extern from "brent.h":
