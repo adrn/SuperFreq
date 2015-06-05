@@ -6,13 +6,14 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 
 # Standard library
 import time
+import logging
+logger = logging.getLogger(__name__)
 
 # Third-party
 import numpy as np
 from numpy.fft import fft, fftfreq
 
 # Project
-from . import logger
 from .core import check_for_primes
 from ._naff import naff_frequency
 from .simpsgauss import simpson
