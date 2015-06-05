@@ -7,4 +7,9 @@ Reference / API
 Object-oriented interface
 -------------------------
 
-.. autoclass:: superfreq.SuperFreq
+.. autosummary::
+   :toctree: _superfreq/
+   :template: class.rst
+   :nosignatures:
+
+   superfreq.SuperFreq
