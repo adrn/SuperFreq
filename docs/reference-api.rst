@@ -1,5 +1,3 @@
-.. _reference-api
-
 ###############
 Reference / API
 ###############
@@ -13,3 +11,22 @@ Object-oriented interface
    :nosignatures:
 
    superfreq.SuperFreq
+
+Automated (functional) interface
+--------------------------------
+
+.. autosummary::
+   :toctree: _superfreq/
+   :nosignatures:
+
+   superfreq.find_frequencies
+
+Utility functions
+-----------------
+
+.. autosummary::
+   :toctree: _superfreq/
+   :nosignatures:
+
+   superfreq.find_integer_vectors
+   superfreq.closest_resonance
