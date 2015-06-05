@@ -1,3 +1,5 @@
+.. _index:
+
 #########
 SuperFreq
 #########
@@ -28,9 +30,7 @@ SuperFreq operates on time series, e.g., orbits. This package does not provide a
 Reference / API
 ===============
 
-.. autosummary::
-   :nosignatures:
-   :toctree: _superfreq/
+Object-oriented interface
+-------------------------
 
-   superfreq.SuperFreq
-   superfreq.orbit_to_freqs
+.. autoclass:: superfreq.SuperFreq

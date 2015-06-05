@@ -10,17 +10,20 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import os
+import sys
+path = os.path.abspath(os.path.join(os.path.split(os.path.abspath(__file__))[0], ".."))
+sys.path.append(path)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('.'))
 
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+# needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -266,7 +269,7 @@ intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None),
                        'gary': ('http://adrian.pw/gary/', None)}
 
 # see: http://stackoverflow.com/questions/20334804/sphinx-autodoc-and-numpydoc
-numpydoc_show_class_members = False
+# numpydoc_show_class_members = False
 
 # generate stub pages
 autosummary_generate = True
