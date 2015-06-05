@@ -425,9 +425,9 @@ class SuperFreq(object):
 
         return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
-    def find_actions(self):
-        """ Reconstruct approximations to the actions using Percivals equation """
-        pass
+    # def find_actions(self):
+    #     """ Reconstruct approximations to the actions using Percivals equation """
+    #     pass
 
 def find_integer_vectors(freqs, table, max_int=12):
     r"""
