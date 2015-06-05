@@ -8,11 +8,11 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import time
 
 # Third-party
-from astropy import log as logger
 import numpy as np
 from numpy.fft import fft, fftfreq
 
 # Project
+from . import logger
 from .core import check_for_primes
 from ._naff import naff_frequency
 from .simpsgauss import simpson
@@ -53,7 +53,8 @@ class SuperFreq(object):
     keep_calm : bool (optional)
         If something fails when solving for the frequency of a given component,
         ``keep_calm`` determines whether to throw a RuntimeError or exit gracefully.
-        If set to ``True``, will exit quietly and carry on.
+        If set to ``True``, will exit quietly and carry on to the next component. If
+        ``False``, will die if any frequency determination fails.
 
     """
 
@@ -80,7 +81,8 @@ class SuperFreq(object):
         self.T = 0.5 * (self.t[-1] - self.t[0])
 
         # pre-compute values of Hamming filter for this window
-        # see, e.g., C. Hunter (2001)
+        # see, e.g., C. Hunter (2001) for a description of why you might want
+        # p not equal to 1
         self.chi = hamming(self.tz/self.T, p)
 
         # when solving for frequencies and removing components from the time series,
@@ -99,7 +101,7 @@ class SuperFreq(object):
         Parameters
         ----------
         f : array_like
-            Complex time-series, :math:`q(t) + i p(t)`.
+            Complex time-series, e.g., :math:`x(t) + i \, v_x(t)`.
         omega0 : numeric (optional)
             Force finding the peak around the input freuency.
 
@@ -157,17 +159,14 @@ class SuperFreq(object):
 
     def frecoder(self, f, nintvec=12, break_condition=1E-7):
         """
-        For a given number of iterations, or until the break condition is met,
-        solve for strongest frequency of the input time series, then subtract
-        it from the time series.
-
-        This function is meant to be the same as the subroutine FRECODER in
-        Monica Valluri's Fortran SuperFreq routines.
+        For a given number of iterations, or until the break condition is met:
+        solve for strongest frequency of the input time series, subtract
+        it from the time series, and iterate.
 
         Parameters
         ----------
         f : array_like
-            Complex time-series, :math:`q(t) + i p(t)`.
+            Complex time-series, e.g., :math:`x(t) + i \, v_x(t)`.
         nintvec : int (optional)
             Number of integer vectors to find or number of frequencies to find and subtract.
         break_condition : numeric (optional)
@@ -314,25 +313,39 @@ class SuperFreq(object):
                                      **frecoder_kwargs):
         """
         Solve for the fundamental frequencies of each specified time series,
-        `fs`. This is most commonly a 2D array, tuple, or iterable of individual
-        complex time series. Any extra keyword arguments are passed to
-        `SuperFreq.frecoder()`.
+        `fs`. This is most commonly a 2D array, a tuple, or iterable of individual
+        complex time series. For example, if your orbit is 2D, you might pass in
+        a tuple with :math:`x +i \, v_x` as the 0th element and :math:`y +i \, v_y`
+        as the 1st element.
+
+        Any extra keyword arguments are passed to `SuperFreq.frecoder()`.
 
         Parameters
         ----------
         fs : array_like, iterable
-            The time series. If an array-like object, should be 2D with length
-            along axis=0 equal to the number of time series.
+            The iterable of (complex) time series. If an array-like object, should
+            be 2D with length along axis=0 equal to the number of time series. See
+            description above.
         min_freq : numeric (optional)
-            The minimum (absolute) frequency value to consider non-zero.
+            The minimum (absolute) frequency value to consider a non-zero
+            frequency component.
         min_freq_diff : numeric (optional)
-            The minimum (absolute) frequency difference to distinguish two frequencies.
+            The minimum (absolute) frequency difference to distinguish two
+            frequencies.
         **frecoder_kwargs
             Any extra keyword arguments are passed to `SuperFreq.frecoder()`.
 
         Returns
         -------
-
+        freqs : :class:`numpy.ndarray`
+            The fundamental frequencies of the orbit. This will have the same
+            number of elements as the dimensionality of the orbit.
+        table : :class:`numpy.ndarray`
+            The full table of frequency modes, amplitudes, and phases for all
+            components detected in the FFT.
+        freq_ixes : :class:`numpy.ndarray`
+            The indices of the rows of the table that correspond to the modes
+            identified as the fundamental frequencies.
         """
 
         # containers
@@ -411,41 +424,92 @@ class SuperFreq(object):
 
         return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
-    def find_integer_vectors(self, fundamental_freqs, freq_table, max_int=15):
-        r"""
-        Given the fundamental frequencies, and table of all frequency
-        components, determine how each frequency component is related
-        to the fundamental frequencies (e.g., determine the integer
-        vector for each frequency such that :math:`n\cdot \Omega \approx 0.`).
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-
-        """
-
-        ntot = len(d)
-
-        # define meshgrid of integer vectors
-        nfreqs = len(ffreqs)
-        slc = [slice(-imax,imax+1,None)]*nfreqs
-        nvecs = np.vstack(np.vstack(np.mgrid[slc].T))
-
-        # integer vectors
-        d_nvec = np.zeros((ntot,nfreqs))
-        err = np.zeros(ntot)
-        for i in range(ntot):
-            this_err = np.abs(d[i]['freq'] - nvecs.dot(ffreqs))
-            err[i] = this_err.min()
-            d_nvec[i] = nvecs[this_err.argmin()]
-
-        return d_nvec
-
     def find_actions(self):
         """ Reconstruct approximations to the actions using Percivals equation """
         pass
+
+def find_integer_vectors(freqs, table, max_int=12):
+    r"""
+    Given the fundamental frequencies and table of all frequency
+    components, determine how each frequency component is related
+    to the fundamental frequencies (e.g., determine the integer
+    vector for each frequency such that :math:`n\cdot \Omega \approx 0.`).
+    These are the non-zero Fourier modes.
+
+    Parameters
+    ----------
+    freqs : array_like
+        The fundamental frequencies.
+    table : structured array
+        The full table of frequency modes, amplitudes, and phases for all
+        components detected in the FFT.
+    max_int : int (optional)
+        The integer vectors considered will go from ``-max_int`` to ``max_int``
+        in each dimension.
+
+    Returns
+    -------
+    nvec : :class:`numpy.ndarray`
+        An array of integer vectors that correspond to the frequency components.
+
+    """
+
+    # make sure the fundamental frequencies are a numpy array
+    freqs = np.array(freqs)
+
+    ncomponents = len(table)
+
+    # define meshgrid of integer vectors
+    nfreqs = len(freqs)
+    slc = [slice(-max_int,max_int+1,None)]*nfreqs
+    nvecs = np.vstack(np.vstack(np.mgrid[slc].T))
+
+    # integer vectors
+    d_nvec = np.zeros((ncomponents,nfreqs))
+    err = np.zeros(ncomponents)
+    for i in range(ncomponents):
+        this_err = np.abs(table[i]['freq'] - nvecs.dot(freqs))
+        err[i] = this_err.min()
+        d_nvec[i] = nvecs[this_err.argmin()]
+
+    return d_nvec
+
+def closest_resonance(freqs, max_int=12):
+    r"""
+    Find the closest resonant vector for the given set of fundamental
+    frequencies.
+
+    Parameters
+    ----------
+    freqs : array_like
+        The fundamental frequencies.
+    max_int : int (optional)
+        The integer vectors considered will go from ``-max_int`` to ``max_int``
+        in each dimension.
+
+    Returns
+    -------
+    intvec : :class:`numpy.ndarray`
+        The integer vector of the closest resonance.
+    dist : float
+        The distance to the closest resonance, e.g., if :math:`\boldsymbol{n}`
+        is the resonant integer vector, this is just
+        :math:`\boldsymbol{n} \cdot \boldsymbol{\Omega}`.
+
+    """
+
+    # make sure the fundamental frequencies are a numpy array
+    freqs = np.array(freqs)
+
+    # define meshgrid of integer vectors
+    nfreqs = len(freqs)
+    slc = [slice(-max_int,max_int+1,None)]*nfreqs
+    nvecs = np.vstack(np.vstack(np.mgrid[slc].T))
+
+    ndf = nvecs.dot(freqs)
+    min_ix = ndf.argmin()
+
+    return nvecs[min_ix], ndf[min_ix]
 
 def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
     """
