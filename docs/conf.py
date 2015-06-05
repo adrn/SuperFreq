@@ -269,7 +269,7 @@ intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None),
                        'gary': ('http://adrian.pw/gary/', None)}
 
 # see: http://stackoverflow.com/questions/20334804/sphinx-autodoc-and-numpydoc
-# numpydoc_show_class_members = False
+numpydoc_show_class_members = False
 
 # generate stub pages
 autosummary_generate = True
