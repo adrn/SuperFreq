@@ -33,3 +33,4 @@ Reference / API
    :toctree: _superfreq/
 
    superfreq.SuperFreq
+   superfreq.orbit_to_freqs
