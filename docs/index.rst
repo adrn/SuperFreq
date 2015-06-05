@@ -7,6 +7,7 @@ SuperFreq
 .. image:: _static/rick_james.jpg
     :width: 196px
     :align: center
+    :target: https://www.youtube.com/watch?v=QYHxGBH6o4M
 
 |
 |
@@ -22,15 +23,12 @@ The package is developed in
 `a public repository on GitHub <https://github.com/adrn/SuperFreq>`_. If you
 have any trouble installing, find any bugs, or have any questions, please `open an issue on GitHub <https://github.com/adrn/SuperFreq/issues>`_.
 
-Getting started
-===============
+Documentation
+=============
 
-SuperFreq operates on time series, e.g., orbits. This package does not provide any functionality for integrating orbits or transforming between coordinate representations (for that, you might want to install `astropy <https://github.com/astropy/astropy>`_ and `gary <https://github.com/adrn/gary>`_).
+.. toctree::
+   :maxdepth: 1
 
-Reference / API
-===============
-
-Object-oriented interface
--------------------------
-
-.. autoclass:: superfreq.SuperFreq
+   install
+   getting-started
+   reference-api
