@@ -1,7 +1,7 @@
 SuperFreq
 =========
 
-
+Frequency analysis of (orbital) time series. This method is close to that implemented by Monica Valluri in [NAFF](http://dept.astro.lsa.umich.edu/~mvalluri/resources.html), which itself is an implementation of the algorithm first used by Jacques Laskar (see [this review](http://arxiv.org/pdf/math/0305364v3.pdf) and citations within).
 
 Documentation
 =============
