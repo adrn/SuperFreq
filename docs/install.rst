@@ -14,7 +14,7 @@ This packages has the following strict requirements:
 - `Cython <http://www.cython.org/>`_: 0.21 or later
 
 You can use pip to install these automatically using the
-`pip-requirements.txt <https://github.com/adrn/gary/blob/master/pip-requirements-txt>`_
+`pip-requirements.txt <https://github.com/adrn/SuperFreq/blob/master/pip-requirements-txt>`_
 file (from the root of the project):
 
     pip install -r pip-requirements.txt
