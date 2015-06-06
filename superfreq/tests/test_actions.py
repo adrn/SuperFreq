@@ -47,7 +47,8 @@ def cartesian_to_polar(w):
     new_w = np.vstack((R.T, pp_phi.T, vR.T, pp_phidot.T)).T
     return new_w
 
-@pytest.mark.skipif('not HAS_DATA')
+# @pytest.mark.skipif('not HAS_DATA')
+@pytest.mark.skipif(True)
 def test_isochrone():
     f = h5py.File(cache_file, 'r')
     t = f['orbits']['t']
@@ -76,5 +77,52 @@ def test_isochrone():
         # print("SuperFreq: {0}".format(freqs))
 
         sf_acts = compute_actions(freqs, tbl)
+
+        return
+
+        # SUPAH TESTIN
+        from ..naff import find_integer_vectors
+
+        ww = w[:,n].copy()
+        fs = [(ww[:,i] + 1j*ww[:,i+2]) for i in range(2)]
+        freqs,tbl,ixes = sf.find_fundamental_frequencies(fs, nintvec=30)
+
+        slc = [slice(-15,15+1,None)]*len(freqs)
+        all_nvecs = np.vstack(np.vstack(np.mgrid[slc].T))
+
+
+        _tbl = tbl[tbl['idx'] == 0]
+        nvecs = find_integer_vectors(freqs, _tbl)
+        f_x_t = 0.
+        for row,nvec in zip(_tbl, nvecs):
+            f_x_t += row['A'] * np.exp(1j * nvec.dot(freqs) * t[:,n])
+
+        import matplotlib.pyplot as plt
+        plt.plot(w[:,n,0], f_x_t.real, marker=None)
+        plt.show()
+        return
+
+        nvecs = find_integer_vectors(freqs, tbl)
+
+        Js = np.zeros(2)
+        for j in np.unique(tbl['idx']):
+            _tbl = tbl[tbl['idx'] == j]
+            _nvecs = nvecs[tbl['idx'] == j]
+            for i in range(len(_tbl)):
+                row = _tbl[i]
+                nvec = _nvecs[i]
+                ix = (nvecs[:,0] == nvec[0]) & (nvecs[:,1] == nvec[1])
+
+                A = np.sum(tbl['|A|'].real[ix]**2)
+                Js[j] += nvec[j] * nvec.dot(freqs) * A
+                # Js[j] += nvec[j] * nvec.dot(freqs) * row['|A|']**2
+                # Js[j] += _nvecs[i,j] * _nvecs[i].dot(freqs) * row['A'].real**2
+
+        print("Isochrone act: {0}".format(true_actn))
+        print(Js)
+        return
+
         print("Isochrone act: {0}".format(true_actn))
         print("SuperFreq act: {0}".format(sf_acts))
+
+        break
