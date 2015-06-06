@@ -11,7 +11,6 @@ import os
 
 # Third-party
 import h5py
-import matplotlib.pyplot as pl
 import numpy as np
 import gary.potential as gp
 from gary.integrate import DOPRI853Integrator
@@ -41,7 +40,7 @@ def main(norbits=100, seed=42):
     # velocity magnitude
     menc = pot.mass_enclosed([r,0.,0.])
     vc = np.sqrt(pot.G * menc / r)
-    vmag = np.random.normal(vc, vc*0.05, size=norbits)
+    vmag = np.random.normal(vc-0.01, vc*0.01, size=norbits)
 
     # for position
     phi = np.random.uniform(0, 2*np.pi, size=norbits)
@@ -62,12 +61,6 @@ def main(norbits=100, seed=42):
     frq = frq[:,:2]
     true_periods = (2*np.pi / frq).max(axis=-1)
 
-    # integrate them orbits
-    dt = np.median(true_periods / nsteps_per_period)
-    t,w = pot.integrate_orbit(w0, dt=dt, nsteps=nsteps,
-                              Integrator=DOPRI853Integrator)
-    w = w[...,[0,1,3,4]]
-
     # write to file
     f = h5py.File(cache_file, "w")
 
@@ -76,9 +69,19 @@ def main(norbits=100, seed=42):
     truth.create_dataset("angles", ang.shape, dtype='f8', data=ang)
     truth.create_dataset("freqs", frq.shape, dtype='f8', data=frq)
 
+    # integrate them orbits -- have to do it this way to make sure
+    #   dt is right
+    ws = np.zeros((nsteps+1, norbits, 4))
+    for i,period in enumerate(true_periods):
+        print("Orbit {0}".format(i))
+        dt = period / nsteps_per_period
+        t,w = pot.integrate_orbit(w0[i], dt=dt, nsteps=nsteps,
+                                  Integrator=DOPRI853Integrator)
+        ws[:,i] = w[:,0,[0,1,3,4]]
+
     orb = f.create_group("orbits")
     orb.create_dataset("t", t.shape, dtype='f8', data=t)
-    orb.create_dataset("w", w.shape, dtype='f8', data=w)
+    orb.create_dataset("w", ws.shape, dtype='f8', data=ws)
 
     f.flush()
     f.close()
