@@ -7,3 +7,4 @@ docs/_*
 docs/build
 .coverage
 htmlcov/*
+*.h5
