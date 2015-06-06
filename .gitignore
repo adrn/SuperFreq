@@ -1,3 +1,9 @@
+*.pyc
 *.c
+superfreq/cython_version.py
+superfreq/version.py
+build
 docs/_*
 docs/build
+.coverage
+htmlcov/*

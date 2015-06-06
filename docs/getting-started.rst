@@ -2,7 +2,7 @@
 Getting started
 ###############
 
-SuperFreq operates on time series, e.g., orbits. This package does not provide any functionality for integrating orbits or transforming between coordinate representations (for that, you might want to install `astropy <https://github.com/astropy/astropy>`_ and `gary <https://github.com/adrn/gary>`_).
+SuperFreq operates on time series, e.g., orbits. This package does not provide any functionality for integrating orbits or transforming between coordinate representations (for that, you might want to install `astropy <https://github.com/astropy/astropy>`__ and `gary <https://github.com/adrn/gary>`__).
 
 Running SuperFreq on a pre-generated orbit
 ==========================================
