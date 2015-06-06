@@ -426,10 +426,6 @@ class SuperFreq(object):
 
         return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
-    # def find_actions(self):
-    #     """ Reconstruct approximations to the actions using Percivals equation """
-    #     pass
-
 def find_integer_vectors(freqs, table, max_int=12):
     r"""
     Given the fundamental frequencies and table of all frequency
@@ -471,6 +467,7 @@ def find_integer_vectors(freqs, table, max_int=12):
     err = np.zeros(ncomponents)
     for i in range(ncomponents):
         this_err = np.abs(table[i]['freq'] - nvecs.dot(freqs))
+        print(this_err.min())
         err[i] = this_err.min()
         d_nvec[i] = nvecs[this_err.argmin()]
 
@@ -590,3 +587,21 @@ def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
         freqs = fxyz
 
     return freqs, d, ixes, is_tube
+
+def compute_actions(freqs, table):
+    """
+    Reconstruct approximations to the actions using Percival's equation
+
+    """
+
+    ndim = len(freqs)
+    nvecs = find_integer_vectors(freqs, table)
+
+    Js = np.zeros(ndim)
+    for i in range(len(table)):
+        row = table[i]
+        # Js += nvecs[i] * nvecs[i].dot(freqs) * row['|A|']**2
+        Js += nvecs[i] * nvecs[i].dot(freqs) * row['|A|']**2
+
+    return Js
+
