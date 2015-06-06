@@ -5,3 +5,5 @@ superfreq/version.py
 build
 docs/_*
 docs/build
+.coverage
+htmlcov/*
