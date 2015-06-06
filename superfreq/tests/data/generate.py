@@ -22,8 +22,8 @@ def main(norbits=100, seed=42):
     cache_file = os.path.join(cache_path, "isochrone_orbits.h5")
 
     # integration parameters
+    nperiods = 50
     nsteps_per_period = 512
-    nperiods = 100
     nsteps = nperiods * nsteps_per_period
 
     # ---------------------------------------------------------------
@@ -72,15 +72,17 @@ def main(norbits=100, seed=42):
     # integrate them orbits -- have to do it this way to make sure
     #   dt is right
     ws = np.zeros((nsteps+1, norbits, 4))
+    ts = np.zeros((nsteps+1, norbits))
     for i,period in enumerate(true_periods):
         print("Orbit {0}".format(i))
         dt = period / nsteps_per_period
         t,w = pot.integrate_orbit(w0[i], dt=dt, nsteps=nsteps,
                                   Integrator=DOPRI853Integrator)
         ws[:,i] = w[:,0,[0,1,3,4]]
+        ts[:,i] = t
 
     orb = f.create_group("orbits")
-    orb.create_dataset("t", t.shape, dtype='f8', data=t)
+    orb.create_dataset("t", ts.shape, dtype='f8', data=ts)
     orb.create_dataset("w", ws.shape, dtype='f8', data=ws)
 
     f.flush()

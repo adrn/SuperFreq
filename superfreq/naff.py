@@ -593,15 +593,26 @@ def compute_actions(freqs, table):
 
     ndim = len(freqs)
     nvecs = find_integer_vectors(freqs, table)
-    done_vecs = []
+    print(nvecs)
+
+    # now we need to group by integer vector
+    nvec_to_amp = dict()
+    for nvec in nvecs:
+        ix = (nvecs == nvec).all(axis=-1)
+        print(ix.sum())
+        continue
+        nvec_to_amp[frozenset(nvec)] = table['A'][ix]
+        print(nvec_to_amp[frozenset(nvec)])
+
+    return
 
     Js = np.zeros(ndim)
     for i in range(len(table)):
-        if nvecs[i].tolist() in done_vecs:
-            continue
+        # if nvecs[i].tolist() in done_vecs:
+        #     continue
 
         row = table[i]
-        Js += nvecs[i] * nvecs[i].dot(freqs) * row['|A|']**2
+        Js += nvecs[i] * nvecs[i].dot(freqs) * row['A'].real**2
         done_vecs.append(nvecs[i].tolist())
 
     return Js
