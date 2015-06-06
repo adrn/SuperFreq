@@ -463,13 +463,10 @@ def find_integer_vectors(freqs, table, max_int=12):
     nvecs = np.vstack(np.vstack(np.mgrid[slc].T))
 
     # integer vectors
-    d_nvec = np.zeros((ncomponents,nfreqs))
-    err = np.zeros(ncomponents)
+    d_nvec = np.zeros((ncomponents,nfreqs)).astype(int)
     for i in range(ncomponents):
-        this_err = np.abs(table[i]['freq'] - nvecs.dot(freqs))
-        print(this_err.min())
-        err[i] = this_err.min()
-        d_nvec[i] = nvecs[this_err.argmin()]
+        errs = np.abs(nvecs.dot(freqs) - table[i]['freq'])
+        d_nvec[i] = nvecs[errs.argmin()]
 
     return d_nvec
 
@@ -596,12 +593,15 @@ def compute_actions(freqs, table):
 
     ndim = len(freqs)
     nvecs = find_integer_vectors(freqs, table)
+    done_vecs = []
 
     Js = np.zeros(ndim)
     for i in range(len(table)):
+        if nvecs[i].tolist() in done_vecs:
+            continue
+
         row = table[i]
-        # Js += nvecs[i] * nvecs[i].dot(freqs) * row['|A|']**2
         Js += nvecs[i] * nvecs[i].dot(freqs) * row['|A|']**2
+        done_vecs.append(nvecs[i].tolist())
 
     return Js
-
