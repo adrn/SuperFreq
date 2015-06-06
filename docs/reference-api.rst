@@ -15,8 +15,8 @@ Automated (functional) interface
 --------------------------------
 
 .. autosummary::
-   :nosignatures:
    :toctree: _superfreq/
+   :nosignatures:
 
    superfreq.find_frequencies
 
