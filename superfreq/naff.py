@@ -18,7 +18,8 @@ from .core import check_for_primes
 from ._naff import naff_frequency
 from .simpsgauss import simpson
 
-__all__ = ['SuperFreq', 'orbit_to_freqs']
+__all__ = ['SuperFreq', 'find_frequencies',
+           'find_integer_vectors', 'closest_resonance']
 
 def hamming(t_T, p):
     return 2.**p * (np.math.factorial(p))**2. / np.math.factorial(2*p) * (1. + np.cos(np.pi*t_T))**p
@@ -425,10 +426,6 @@ class SuperFreq(object):
 
         return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
 
-    def find_actions(self):
-        """ Reconstruct approximations to the actions using Percivals equation """
-        pass
-
 def find_integer_vectors(freqs, table, max_int=12):
     r"""
     Given the fundamental frequencies and table of all frequency
@@ -466,12 +463,10 @@ def find_integer_vectors(freqs, table, max_int=12):
     nvecs = np.vstack(np.vstack(np.mgrid[slc].T))
 
     # integer vectors
-    d_nvec = np.zeros((ncomponents,nfreqs))
-    err = np.zeros(ncomponents)
+    d_nvec = np.zeros((ncomponents,nfreqs)).astype(int)
     for i in range(ncomponents):
-        this_err = np.abs(table[i]['freq'] - nvecs.dot(freqs))
-        err[i] = this_err.min()
-        d_nvec[i] = nvecs[this_err.argmin()]
+        errs = np.abs(nvecs.dot(freqs) - table[i]['freq'])
+        d_nvec[i] = nvecs[errs.argmin()]
 
     return d_nvec
 
@@ -512,7 +507,7 @@ def closest_resonance(freqs, max_int=12):
 
     return nvecs[min_ix], ndf[min_ix]
 
-def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
+def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
     """
     Compute the fundamental frequencies of an orbit, ``w``. If not forced, this
     function tries to figure out whether the input orbit is a tube or box orbit and
@@ -589,3 +584,24 @@ def orbit_to_freqs(t, w, force_box=False, silently_fail=True, **kwargs):
         freqs = fxyz
 
     return freqs, d, ixes, is_tube
+
+def compute_actions(freqs, table):
+    """
+    Reconstruct approximations to the actions using Percival's equation
+
+    """
+
+    ndim = len(freqs)
+    nvecs = find_integer_vectors(freqs, table)
+    done_vecs = []
+
+    Js = np.zeros(ndim)
+    for i in range(len(table)):
+        if nvecs[i].tolist() in done_vecs:
+            continue
+
+        row = table[i]
+        Js += nvecs[i] * nvecs[i].dot(freqs) * row['|A|']**2
+        done_vecs.append(nvecs[i].tolist())
+
+    return Js
