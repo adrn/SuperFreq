@@ -1,3 +1,5 @@
 *.c
 docs/_*
 docs/build
+superfreq/cython_version.py
+superfreq/version.py
