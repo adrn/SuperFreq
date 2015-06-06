@@ -1,5 +1,7 @@
+*.pyc
 *.c
-docs/_*
-docs/build
 superfreq/cython_version.py
 superfreq/version.py
+build
+docs/_*
+docs/build
