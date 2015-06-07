@@ -585,34 +585,49 @@ def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
 
     return freqs, d, ixes, is_tube
 
-def compute_actions(freqs, table):
+def compute_actions(freqs, table, max_int=12):
     """
-    Reconstruct approximations to the actions using Percival's equation
+    Reconstruct approximations to the actions using Percival's equation.
+
+    Approximate the values of the actions using a Fourier decomposition.
+    You must pass in the frequencies and frequency table determined from
+    and orbit in Cartesian coordinates.
+
+    For example, see:
+    - `Valluri & Merritt (1999) <http://arxiv.org/abs/astro-ph/9906176>`_
+    - `Percival (1974) <http://iopscience.iop.org/0301-0015/7/7/005>`_
+
+    Parameters
+    ----------
+    freqs : array_like
+        The fundamental frequencies.
+    table : structured array
+        The full table of frequency modes, amplitudes, and phases for all
+        components detected in the FFT.
+    max_int : int (optional)
+        The integer vectors considered will go from ``-max_int`` to ``max_int``
+        in each dimension.
+
+    Returns
+    -------
+    actions : :class:`numpy.ndarray`
+        Numerical estimates of the orbital actions.
 
     """
-
     ndim = len(freqs)
-    nvecs = find_integer_vectors(freqs, table)
-    print(nvecs)
 
-    # now we need to group by integer vector
-    nvec_to_amp = dict()
-    for nvec in nvecs:
-        ix = (nvecs == nvec).all(axis=-1)
-        print(ix.sum())
-        continue
-        nvec_to_amp[frozenset(nvec)] = table['A'][ix]
-        print(nvec_to_amp[frozenset(nvec)])
+    # get integer vectors for each component
+    nvecs = find_integer_vectors(freqs, table, max_int=max_int)
 
-    return
+    # container to store |X_k|^2
+    amp2 = np.zeros([2*max_int+2]*ndim)
+    for nvec,row in zip(nvecs, tbl):
+        slc = [slice(x,x+1,None) for x in nvec]
+        amp2[slc] += row['A'].real**2
 
     Js = np.zeros(ndim)
-    for i in range(len(table)):
-        # if nvecs[i].tolist() in done_vecs:
-        #     continue
-
-        row = table[i]
-        Js += nvecs[i] * nvecs[i].dot(freqs) * row['A'].real**2
-        done_vecs.append(nvecs[i].tolist())
+    for nvec in nvecs:
+        slc = [slice(x,x+1,None) for x in nvec]
+        Js += nvec * nvec.dot(freqs) * float(amp2[slc])
 
     return Js
