@@ -621,13 +621,13 @@ def compute_actions(freqs, table, max_int=12):
 
     # container to store |X_k|^2
     amp2 = np.zeros([2*max_int+2]*ndim)
-    for nvec,row in zip(nvecs, tbl):
-        slc = [slice(x,x+1,None) for x in nvec]
+    for nvec,row in zip(nvecs, table):
+        slc = [slice(x+max_int,x+max_int+1,None) for x in nvec]
         amp2[slc] += row['A'].real**2
 
     Js = np.zeros(ndim)
     for nvec in nvecs:
-        slc = [slice(x,x+1,None) for x in nvec]
+        slc = [slice(x+max_int,x+max_int+1,None) for x in nvec]
         Js += nvec * nvec.dot(freqs) * float(amp2[slc])
 
     return Js
