@@ -17,7 +17,7 @@ You can use pip to install these automatically using the
 `pip-requirements.txt <https://github.com/adrn/SuperFreq/blob/master/pip-requirements-txt>`_
 file (from the root of the project):
 
-    pip install -r pip-requirements.txt
+   pip install -r pip-requirements.txt
 
 Installing
 ==========
@@ -36,8 +36,8 @@ Building and Installing
 To build the project (from the root of the source tree, e.g., inside
 the cloned ``superfreq`` directory)::
 
-    python setup.py build
+   python setup.py build
 
 To install the project::
 
-    python setup.py install
+   python setup.py install

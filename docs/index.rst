@@ -3,9 +3,9 @@ SuperFreq
 #########
 
 .. image:: _static/rick_james.jpg
-    :width: 196px
-    :align: center
-    :target: https://www.youtube.com/watch?v=QYHxGBH6o4M
+   :width: 196px
+   :align: center
+   :target: https://www.youtube.com/watch?v=QYHxGBH6o4M
 
 |
 |
