@@ -19,7 +19,8 @@ from ._naff import naff_frequency
 from .simpsgauss import simpson
 
 __all__ = ['SuperFreq', 'find_frequencies',
-           'find_integer_vectors', 'closest_resonance']
+           'find_integer_vectors', 'closest_resonance',
+           'compute_actions']
 
 def hamming(t_T, p):
     return 2.**p * (np.math.factorial(p))**2. / np.math.factorial(2*p) * (1. + np.cos(np.pi*t_T))**p

@@ -29,3 +29,4 @@ Utility functions
 
    superfreq.find_integer_vectors
    superfreq.closest_resonance
+   superfreq.compute_actions
