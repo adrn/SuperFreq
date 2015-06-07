@@ -38,7 +38,7 @@ def test_frequencies():
     t = f['orbits']['t']
     w = f['orbits']['w']
 
-    for n in range(w.shape[1]):
+    for n in range(w.shape[1])[:10]:
         # run superfreq
         sf = SuperFreq(t[:,n])
         true_freq = f['truth']['freqs'][n]
