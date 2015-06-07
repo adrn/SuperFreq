@@ -315,8 +315,9 @@ class SuperFreq(object):
     def find_fundamental_frequencies(self, fs, min_freq=1E-6, min_freq_diff=1E-6,
                                      **frecoder_kwargs):
         """
-        Solve for the fundamental frequencies of each specified time series,
-        `fs`. This is most commonly a 2D array, a tuple, or iterable of individual
+        Solve for the fundamental frequencies of each specified time series.
+
+        This is most commonly a 2D array, a tuple, or iterable of individual
         complex time series. For example, if your orbit is 2D, you might pass in
         a tuple with :math:`x +i \, v_x` as the 0th element and :math:`y +i \, v_y`
         as the 1st element.
