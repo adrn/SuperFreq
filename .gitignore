@@ -4,7 +4,7 @@ superfreq/cython_version.py
 superfreq/version.py
 build
 docs/_*
-docs/build
+docs/api
 .coverage
 htmlcov/*
 *.h5
