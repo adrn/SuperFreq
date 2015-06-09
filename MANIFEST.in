@@ -4,6 +4,7 @@ include LICENSE
 include ez_setup.py
 include ah_bootstrap.py
 include setup.cfg
+include pip-requirements.txt
 
 recursive-include *.pyx *.h *.c *.pxd
 recursive-include docs *
