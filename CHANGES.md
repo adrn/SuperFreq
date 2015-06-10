@@ -1,9 +1,9 @@
 This file keeps track of changes between tagged versions of SuperFreq.
 
-0.2 (unreleased)
-----------------
+0.1.1 (2015-06-10)
+------------------
 
-- No changes yet!
+- Fix MANIFEST.in to include cextern files.
 
 0.1 (2015-06-08)
 ----------------
