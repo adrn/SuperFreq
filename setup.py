@@ -114,5 +114,19 @@ setup(name=PACKAGENAME,
       zip_safe=False,
       use_2to3=True,
       entry_points=entry_points,
+      classifiers=[
+          'Development Status :: 3 - Alpha'
+          'Intended Audience :: Science/Research',
+          'License :: OSI Approved :: MIT License',
+          'Operating System :: OS Independent',
+          'Programming Language :: Cython',
+          'Programming Language :: Python',
+          'Programming Language :: Python :: 2.6',
+          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: Implementation :: CPython',
+          'Topic :: Scientific/Engineering :: Astronomy',
+          'Topic :: Scientific/Engineering :: Physics'
+      ],
       **package_info
 )
