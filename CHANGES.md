@@ -1,5 +1,10 @@
 This file keeps track of changes between tagged versions of SuperFreq.
 
+0.2 (unreleased)
+---------------
+
+- Nothing here yet!
+
 0.1.1 (2015-06-10)
 ------------------
 
