@@ -22,15 +22,22 @@ Dependencies
 Installation
 ------------
 
-You'll first need to make sure you have the required packages installed (see
-pip-requirements.txt). You can use `pip` to automatically install these with
+`SuperFreq` is easily installed via `pip`:
 
-    pip install -r pip-requirements.txt
+```bash
+pip install superfreq
+```
 
-Then it's just a matter of
+You could also install from the source by cloning or [downloading the source](https://github.com/adrn/SuperFreq/archive/master.zip) from this repository. You'll first need to make sure you have the required packages installed --- you can use `pip` to automatically install these with:
 
-    python setup.py install
+```bash
+pip install -r pip-requirements.txt
+```
 
-For the object-oriented interface to `SuperFreq`, these are the only
-requirements. For more automated frequency finding, you'll also need to
-install [gary](https://github.com/adrn/gary).
+Then run
+
+```bash
+python setup.py install
+```
+
+For the object-oriented interface to `SuperFreq`, these are the only requirements. For more automated frequency finding, you'll also need to install [gary](https://github.com/adrn/gary).
