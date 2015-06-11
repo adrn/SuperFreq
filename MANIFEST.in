@@ -17,5 +17,6 @@ prune docs/api
 recursive-include astropy_helpers *
 exclude astropy_helpers/.git
 exclude astropy_helpers/.gitignore
+exclude test-data
 
 global-exclude *.pyc *.o

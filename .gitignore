@@ -9,3 +9,4 @@ docs/api
 htmlcov/*
 *.h5
 notebooks
+test-data
