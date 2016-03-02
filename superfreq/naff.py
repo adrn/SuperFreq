@@ -93,7 +93,7 @@ class SuperFreq(object):
         #   SuperFreq will exit gracefully instead of throwing a RuntimeError
         self.keep_calm = keep_calm
 
-    def frequency(self, f, omega0=None):
+    def frequency(self, f, omega0=None, return_fft=False):
         """
         Find the most significant frequency of a (complex) time series, :math:`f(t)`,
         by Fourier transforming the function convolved with a Hanning filter and
@@ -107,18 +107,29 @@ class SuperFreq(object):
             Complex time-series, e.g., :math:`x(t) + i \, v_x(t)`.
         omega0 : numeric (optional)
             Force finding the peak around the input freuency.
+        return_fft : bool (optional)
+            Return the FFT along with the most significant frequency.
 
         Returns
         -------
         freq : numeric
             The strongest frequency in the specified complex time series, ``f``.
+        omegas : :class:`~numpy.ndarray`
+            An array of frequencies.
+        fft : :class:`~numpy.ndarray`
+            The FFT of the input time series `f`.
 
         """
 
-        if len(f) != self.n:
+        f = np.array(f)
+
+        if len(f) > self.n:
             logger.warning("Truncating time series to match shape of time array ({0}) ({1})"
                            .format(len(f), self.n))
             f = f[:self.n]
+
+        elif len(f) < self.n:
+            raise ValueError("Input time-series, f, has less elements than time array, t.")
 
         # take Fourier transform of input (complex) function f
         t1 = time.time()
@@ -145,20 +156,12 @@ class SuperFreq(object):
         Re_f = f.real.copy()
         Im_f = f.imag.copy()
 
-        # for debugging -- plot FFT
-        # try:
-        #     freq = naff_frequency(omega0, self.tz, self.chi, Re_f, Im_f, self.T)
-        # except RuntimeError:
-        #     import matplotlib.pyplot as plt
-        #     plt.clf()
-        #     plt.plot(omegas, np.abs(fff), marker=None)
-        #     plt.xscale('symlog')
-        #     plt.axvline(omega0)
-        #     plt.show()
-        #     raise
         freq = naff_frequency(omega0, self.tz, self.chi, Re_f, Im_f, self.T)
 
-        return freq
+        if return_fft:
+            return freq, omegas, fff
+        else:
+            return freq
 
     def frecoder(self, f, nintvec=12, break_condition=1E-7):
         """
