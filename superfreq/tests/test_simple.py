@@ -12,29 +12,38 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 # Third-party
+from astropy.utils import isiterable
 import numpy as np
 
 # Project
 from ..naff import SuperFreq
 
 def test_cy_naff():
-    """ This checks the Cython frequency determination function """
+    """
+    This checks the Cython frequency determination function. We construct a simple
+    time series with known frequencies and amplitudes and just verify that the
+    strongest frequency pulled out by NAFF is correct.
+    """
 
     from .._naff import naff_frequency
 
     t = np.linspace(0., 300., 12000)
-    naff = SuperFreq(t)
-
     true_ws = 2*np.pi*np.array([0.581, 0.73])
     true_as = np.array([5*(np.cos(np.radians(15.)) + 1j*np.sin(np.radians(15.))),
                         1.8*(np.cos(np.radians(85.)) + 1j*np.sin(np.radians(85.)))])
-    f = np.sum(true_as[None] * np.exp(1j * true_ws[None] * t[:,None]), axis=1)
 
-    ww = naff_frequency(true_ws[0], naff.tz, naff.chi,
-                        np.ascontiguousarray(f.real),
-                        np.ascontiguousarray(f.imag),
-                        naff.T)
-    np.testing.assert_allclose(ww, true_ws[0], atol=1E-8)
+    for p in range(1,4+1): # try different filter exponents, p
+        ff = SuperFreq(t, p=p)
+        for sign in [1.,-1.]: # make sure we recover the correct sign of the frequency
+            true_omegas = true_ws * sign
+            f = np.sum(true_as[None] * np.exp(1j * true_omegas[None] * t[:,None]), axis=1)
+
+            ww = naff_frequency(true_omegas[0], ff.tz, ff.chi,
+                                np.ascontiguousarray(f.real),
+                                np.ascontiguousarray(f.imag),
+                                ff.T)
+
+            np.testing.assert_allclose(ww, true_omegas[0], atol=1E-8)
 
 class SimpleBase(object):
 
@@ -71,14 +80,20 @@ class SimpleBase(object):
             f = self.make_f(t)
             nfreq = len(self.omega)
 
-            # create SuperFreq object for this time array
-            sf = SuperFreq(t, p=self.p)
+            if not isiterable(self.p):
+                ps = [self.p]
+            else:
+                ps = self.p
 
-            # solve for the frequencies
-            w,amp,phi = sf.frecoder(f[:sf.n], break_condition=1E-5)
-            np.testing.assert_allclose(self.omega, w[:nfreq], atol=1E-8)
-            np.testing.assert_allclose(self.A, amp[:nfreq], atol=1E-6)
-            np.testing.assert_allclose(self.phi, phi[:nfreq], atol=1E-6)
+            for p in ps:
+                # create SuperFreq object for this time array
+                sf = SuperFreq(t, p=p)
+
+                # solve for the frequencies
+                w,amp,phi = sf.frecoder(f[:sf.n], break_condition=1E-5)
+                np.testing.assert_allclose(self.omega, w[:nfreq], atol=1E-8)
+                np.testing.assert_allclose(self.A, amp[:nfreq], atol=1E-6)
+                np.testing.assert_allclose(self.phi, phi[:nfreq], atol=1E-6)
 
     def test_rolling_window(self):
         ts = [np.linspace(0.+dd, 150.+dd, 42104) for dd in np.linspace(0,10,50)]
@@ -88,12 +103,18 @@ class SimpleBase(object):
             f = self.make_f(t)
             nfreq = len(self.omega)
 
-            # create SuperFreq object for this time array
-            sf = SuperFreq(t, p=self.p)
+            if not isiterable(self.p):
+                ps = [self.p]
+            else:
+                ps = self.p
 
-            # try recovering the strongest frequency
-            w,amp,phi = sf.frecoder(f[:sf.n], break_condition=1E-5)
-            dws.append(np.abs(self.omega - w[:nfreq]))
+            for p in ps:
+                # create SuperFreq object for this time array
+                sf = SuperFreq(t, p=p)
+
+                # try recovering the strongest frequency
+                w,amp,phi = sf.frecoder(f[:sf.n], break_condition=1E-5)
+                dws.append(np.abs(self.omega - w[:nfreq]))
 
         dws = np.array(dws)
         assert np.all(np.abs(dws) < 1E-8)
@@ -104,7 +125,7 @@ class TestSimple1(SimpleBase):
         self.omega = 2*np.pi*np.array([0.581, 0.73])
         self.amp = np.array([5*(np.cos(np.radians(15.)) + 1j*np.sin(np.radians(15.))),
                              1.8*(np.cos(np.radians(85.)) + 1j*np.sin(np.radians(85.)))])
-        self.p = 2
+        self.p = [1,2,3,4]
         super(TestSimple1, self).setup()
 
 class TestSimple2(SimpleBase):
