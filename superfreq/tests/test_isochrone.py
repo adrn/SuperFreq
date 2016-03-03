@@ -1,15 +1,5 @@
 # coding: utf-8
 
-"""
-    This test requires some data generated using Gary. The data is not stored
-    in the repository so you will have to generate this if you want to run
-    this test suite. Generating the test data requires both Gary and
-    HDF5 / h5py. The script to generate the data can be run with::
-
-        python superfreq/tests/data/generate.py
-
-"""
-
 from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
@@ -45,8 +35,7 @@ def test_frequencies():
         all_v = f['orbits']['v'][:]
         initial_freqs = f['initial']['freqs'][:]
 
-    # for n in range(n_orbits):
-    for n in range(min(10, n_orbits)): # HACK for speed
+    for n in range(n_orbits):
         # run superfreq
         sf = SuperFreq(all_t[:,n])
         true_freq = initial_freqs[:,n]
