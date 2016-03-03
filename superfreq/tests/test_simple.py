@@ -157,7 +157,6 @@ class SimpleBase(object):
 
     def test_rolling_window(self):
         ts = [np.linspace(0.+dd, 100.+dd, 10000) for dd in np.linspace(0,20,64)]
-        dws = []
         for i,t in enumerate(ts):
             logger.debug(i, t.min(), t.max(), len(t))
             f = self.make_f(t)
