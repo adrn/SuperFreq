@@ -7,18 +7,19 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 # Third-party
 import numpy as np
 
-def cartesian_to_poincare(w):
+def cartesian_to_poincare(xy, vxy):
     # assuming z == 0
-    R = np.sqrt(w[...,0]**2 + w[...,1]**2)
-    phi = np.arctan2(w[...,0], w[...,1])
+    R = np.sqrt(xy[0]**2 + xy[1]**2)
+    phi = np.arctan2(xy[0], xy[1])
 
-    vR = (w[...,0]*w[...,0+2] + w[...,1]*w[...,1+2]) / R
-    vPhi = w[...,0]*w[...,1+2] - w[...,1]*w[...,0+2]
+    vR = (xy[0]*vxy[0] + xy[1]*vxy[1]) / R
+    vPhi = xy[0]*vxy[1] - xy[1]*vxy[0]
 
     # pg. 437, Papaphillipou & Laskar (1996)
     sqrt_2THETA = np.sqrt(np.abs(2*vPhi))
     pp_phi = sqrt_2THETA * np.cos(phi)
-    pp_phidot = -sqrt_2THETA * np.sin(phi)
+    pp_phidot = sqrt_2THETA * np.sin(phi)
 
-    new_w = np.vstack((R.T, pp_phi.T, vR.T, pp_phidot.T)).T
-    return new_w
+    rphi = np.vstack((R, pp_phi))
+    vrphi = np.vstack((vR, pp_phidot))
+    return rphi, vrphi
