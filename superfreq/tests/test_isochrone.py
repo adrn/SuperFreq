@@ -14,40 +14,48 @@ from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
 
-# Standard library
-import os
-
 # Third-party
-import h5py
+try:
+    import h5py
+    HAS_h5py = True
+except ImportError:
+    HAS_h5py = False
 import numpy as np
 import pytest
+try:
+    import gary
+    HAS_gary = True
+except ImportError:
+    HAS_gary = False
 
 # Project
 from .helpers import cartesian_to_poincare
-from ..naff import SuperFreq, compute_actions
+from .data.generate import get_isochrone_orbits
+from ..naff import SuperFreq # , compute_actions
 
-# TODO: wat do about this
-# cache_path = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'data')
-# cache_file = os.path.join(cache_path, "isochrone_orbits.h5")
-cache_file = "/Users/adrian/projects/superfreq/superfreq/tests/data/isochrone_orbits.h5"
-HAS_DATA = os.path.exists(cache_file)
-
-@pytest.mark.skipif('not HAS_DATA')
+@pytest.mark.skipif(not HAS_h5py or not HAS_gary,
+                    reason='h5py and gary must be installed to run this test')
 def test_frequencies():
-    f = h5py.File(cache_file, 'r')
-    t = f['orbits']['t']
-    w = f['orbits']['w']
+    n_orbits = 8
+    cache_file = get_isochrone_orbits(n_orbits=n_orbits)
 
-    for n in range(w.shape[1])[:10]:
+    with h5py.File(cache_file, 'r') as f:
+        all_t = f['orbits']['t'][:]
+        all_x = f['orbits']['x'][:]
+        all_v = f['orbits']['v'][:]
+        initial_freqs = f['initial']['freqs'][:]
+
+    # for n in range(n_orbits):
+    for n in range(min(10, n_orbits)): # HACK for speed
         # run superfreq
-        sf = SuperFreq(t[:,n])
-        true_freq = f['truth']['freqs'][n]
+        sf = SuperFreq(all_t[:,n])
+        true_freq = initial_freqs[:,n]
 
-        ww = cartesian_to_poincare(w[:,n].copy())
-        fs = [(ww[:,i] + 1j*ww[:,i+2]) for i in range(2)]
+        Rphi,vRphi = cartesian_to_poincare(all_x[...,n], all_v[...,n])
+        fs = [(Rphi[i] + 1j*vRphi[i]) for i in range(2)]
         freqs,tbl,ixes = sf.find_fundamental_frequencies(fs, nintvec=10)
 
-        np.testing.assert_allclose(np.abs(freqs), true_freq, atol=1E-8)
+        np.testing.assert_allclose(np.abs(freqs), true_freq, rtol=1E-8)
 
 # @pytest.mark.skipif('not HAS_DATA')
 # def test_actions():
