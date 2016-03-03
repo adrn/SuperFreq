@@ -10,16 +10,20 @@ __author__ = "adrn <adrn@astro.columbia.edu>"
 import os
 
 # Third-party
+from astropy.utils.data import _find_pkg_data_path
 import h5py
 import numpy as np
 import gala.potential as gp
 from gala.integrate import DOPRI853Integrator
 from gala.units import galactic
 
-def main(norbits=100, seed=42):
+def get_isochrone_orbits(n_orbits=100, seed=42):
     np.random.seed(seed)
-    cache_path = os.path.split(os.path.abspath(__file__))[0]
-    cache_file = os.path.join(cache_path, "isochrone_orbits.h5")
+
+    cache_file = os.path.abspath(_find_pkg_data_path("isochrone_orbits.h5"))
+
+    if os.path.exists(cache_file):
+        return cache_file
 
     # integration parameters
     nperiods = 50
@@ -40,10 +44,10 @@ def main(norbits=100, seed=42):
     # velocity magnitude
     menc = pot.mass_enclosed([r,0.,0.])
     vc = np.sqrt(pot.G * menc / r)
-    vmag = np.random.normal(vc-0.01, vc*0.01, size=norbits)
+    vmag = np.random.normal(vc-0.01, vc*0.01, size=n_orbits)
 
     # for position
-    phi = np.random.uniform(0, 2*np.pi, size=norbits)
+    phi = np.random.uniform(0, 2*np.pi, size=n_orbits)
 
     x = r * np.cos(phi)
     y = r * np.sin(phi)
@@ -51,42 +55,57 @@ def main(norbits=100, seed=42):
     vx = -vmag * np.sin(phi)
     vy = vmag * np.cos(phi)
     vz = np.zeros_like(x)
-    w0 = np.vstack((x,y,z,vx,vy,vz)).T
+    pos = np.vstack((x,y,z))*galactic['length']
+    vel = np.vstack((vx,vy,vz))*galactic['length']/galactic['time']
 
     # compute true actions, true frequencies
-    act,ang,frq = pot.action_angle(w0[:,:3], w0[:,3:])
+    w0 = gd.CartesianPhaseSpacePosition(pos=pos, vel=vel)
+    act,ang,frq = pot.action_angle(w0)
+
     # reshape down to 2d
-    act = act[:,:2]
-    ang = ang[:,:2]
-    frq = frq[:,:2]
-    true_periods = (2*np.pi / frq).max(axis=-1)
+    act = act[:2]
+    ang = ang[:2]
+    frq = frq[:2]
+    true_periods = (2*np.pi / frq).max(axis=0)
 
     # write to file
     f = h5py.File(cache_file, "w")
 
-    truth = f.create_group("truth")
-    truth.create_dataset("actions", act.shape, dtype='f8', data=act)
-    truth.create_dataset("angles", ang.shape, dtype='f8', data=ang)
-    truth.create_dataset("freqs", frq.shape, dtype='f8', data=frq)
+    truth = f.create_group("initial")
+    truth.create_dataset("actions", act.shape, dtype='f8', data=act.value)
+    truth["actions"].attrs['unit'] = str(act.unit)
+
+    truth.create_dataset("angles", ang.shape, dtype='f8', data=ang.value)
+    truth["angles"].attrs['unit'] = str(ang.unit)
+
+    truth.create_dataset("freqs", frq.shape, dtype='f8', data=frq.value)
+    truth["freqs"].attrs['unit'] = str(frq.unit)
 
     # integrate them orbits -- have to do it this way to make sure
     #   dt is right
-    ws = np.zeros((nsteps+1, norbits, 4))
-    ts = np.zeros((nsteps+1, norbits))
+    all_x = np.zeros((2,nsteps+1,n_orbits))
+    all_v = np.zeros((2,nsteps+1,n_orbits))
+    all_t = np.zeros((nsteps+1,n_orbits))
     for i,period in enumerate(true_periods):
         print("Orbit {0}".format(i))
         dt = period / nsteps_per_period
-        t,w = pot.integrate_orbit(w0[i], dt=dt, nsteps=nsteps,
-                                  Integrator=DOPRI853Integrator)
-        ws[:,i] = w[:,0,[0,1,3,4]]
-        ts[:,i] = t
+        orbit = pot.integrate_orbit(w0[i], dt=dt, nsteps=nsteps,
+                                    Integrator=DOPRI853Integrator)
+        all_x[...,i] = orbit.pos.decompose(pot.units).value[:2]
+        all_v[...,i] = orbit.vel.decompose(pot.units).value[:2]
+        all_t[...,i] = orbit.t.decompose(pot.units).value
 
     orb = f.create_group("orbits")
-    orb.create_dataset("t", ts.shape, dtype='f8', data=ts)
-    orb.create_dataset("w", ws.shape, dtype='f8', data=ws)
+    orb.create_dataset("t", all_t.shape, dtype='f8', data=all_t)
+    orb['t'].attrs['unit'] = str(pot.units['time'])
+
+    orb.create_dataset("x", all_x.shape, dtype='f8', data=all_x)
+    orb['x'].attrs['unit'] = str(pot.units['length'])
+
+    orb.create_dataset("v", all_v.shape, dtype='f8', data=all_v)
+    orb['v'].attrs['unit'] = str(pot.units['length']/pot.units['time'])
 
     f.flush()
     f.close()
 
-if __name__ == "__main__":
-    main()
+    return cache_file
