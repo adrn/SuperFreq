@@ -457,22 +457,22 @@ def find_integer_vectors(freqs, table, max_int=12):
 
     """
 
-   # make sure the fundamental frequencies are a numpy array
-   freqs = np.array(freqs)
-   nfreqs = len(freqs)
-   ncomponents = len(table)
+    # make sure the fundamental frequencies are a numpy array
+    freqs = np.array(freqs)
+    nfreqs = len(freqs)
+    ncomponents = len(table)
 
-   # define meshgrid of integer vectors
-   grid = np.meshgrid(*[np.arange(-max_int,max_int+1,dtype=int) for i in range(nfreqs)])
-   nvecs = np.vstack(list(map(np.ravel, grid))).T
+    # define meshgrid of integer vectors
+    grid = np.meshgrid(*[np.arange(-max_int,max_int+1,dtype=int) for i in range(nfreqs)])
+    nvecs = np.vstack(list(map(np.ravel, grid))).T
 
-   # integer vectors
-   d_nvec = np.zeros((ncomponents,nfreqs)).astype(int)
-   for i in range(ncomponents):
-       errs = np.abs(nvecs.dot(freqs) - table[i]['freq'])
-       d_nvec[i] = nvecs[errs.argmin()]
+    # integer vectors
+    d_nvec = np.zeros((ncomponents,nfreqs)).astype(int)
+    for i in range(ncomponents):
+        errs = np.abs(nvecs.dot(freqs) - table[i]['freq'])
+        d_nvec[i] = nvecs[errs.argmin()]
 
-   return d_nvec.T
+    return d_nvec.T
 
 def closest_resonance(freqs, max_int=12):
     r"""
@@ -511,7 +511,7 @@ def closest_resonance(freqs, max_int=12):
 
     return nvecs[min_ix], ndf[min_ix]
 
-def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
+def find_frequencies(orbit, force_box=False, silently_fail=True, **kwargs):
     """
     Compute the fundamental frequencies of an orbit, ``w``. If not forced, this
     function tries to figure out whether the input orbit is a tube or box orbit and
@@ -523,10 +523,8 @@ def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
 
     Parameters
     ----------
-    t : array_like
-        Array of times.
-    w : array_like
-        The orbit to analyze. Should have shape (len(t),6).
+    orbit : :class:`gary.dynamics.CartesianOrbit`
+        The orbit to analyze.
     force_box : bool (optional)
         Force the routine to assume the orbit is a box orbit. Default is ``False``.
     silently_fail : bool (optional)
@@ -536,27 +534,30 @@ def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
 
     """
 
-    from gary.dynamics import classify_orbit, align_circulation_with_z
     from gary.coordinates import cartesian_to_poincare_polar
 
-    if w.ndim == 3:
-        # remove extra length-1 dimension (assumed to be axis=1)
-        w = w[:,0]
+    if len(orbit.shape) > 1 and orbit.shape[-1] > 1:
+        raise ValueError("Only works for a single orbit.")
 
     # now get other frequencies
     if force_box:
         is_tube = False
     else:
-        circ = classify_orbit(w)
+        circ = orbit.circulation()
         is_tube = np.any(circ)
 
-    naff = SuperFreq(t)
+    naff = SuperFreq(orbit.t.value)
 
     d = None
     ixes = None
     if is_tube:
         # need to flip coordinates until circulation is around z axis
-        new_ws = align_circulation_with_z(w, circ)
+        new_orbit = orbit.align_circulation_with_z()
+        # new_ws = align_circulation_with_z(w, circ)
+        if orbit.shape[-1]:
+            new_ws = new_orbit.w()[...,0].T
+        else:
+            new_ws = new_orbit.w().T
         new_ws = cartesian_to_poincare_polar(new_ws)
         fs = [(new_ws[:,j] + 1j*new_ws[:,j+3]) for j in range(3)]
 
@@ -573,9 +574,14 @@ def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
         freqs = fRphiz
 
     else:
+        if orbit.shape[-1]:
+            ws = orbit.w()[...,0].T
+        else:
+            ws = orbit.w().T
+
         # first get x,y,z frequencies
         logger.info('Solving for XYZ frequencies...')
-        fs = [(w[:,j] + 1j*w[:,j+3]) for j in range(3)]
+        fs = [(ws[:,j] + 1j*ws[:,j+3]) for j in range(3)]
 
         if silently_fail:
             try:
