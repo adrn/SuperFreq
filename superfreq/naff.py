@@ -457,23 +457,22 @@ def find_integer_vectors(freqs, table, max_int=12):
 
     """
 
-    # make sure the fundamental frequencies are a numpy array
-    freqs = np.array(freqs)
+   # make sure the fundamental frequencies are a numpy array
+   freqs = np.array(freqs)
+   nfreqs = len(freqs)
+   ncomponents = len(table)
 
-    ncomponents = len(table)
+   # define meshgrid of integer vectors
+   grid = np.meshgrid(*[np.arange(-max_int,max_int+1,dtype=int) for i in range(nfreqs)])
+   nvecs = np.vstack(list(map(np.ravel, grid))).T
 
-    # define meshgrid of integer vectors
-    nfreqs = len(freqs)
-    slc = [slice(-max_int,max_int+1,None)]*nfreqs
-    nvecs = np.vstack(np.vstack(np.mgrid[slc].T))
+   # integer vectors
+   d_nvec = np.zeros((ncomponents,nfreqs)).astype(int)
+   for i in range(ncomponents):
+       errs = np.abs(nvecs.dot(freqs) - table[i]['freq'])
+       d_nvec[i] = nvecs[errs.argmin()]
 
-    # integer vectors
-    d_nvec = np.zeros((ncomponents,nfreqs)).astype(int)
-    for i in range(ncomponents):
-        errs = np.abs(nvecs.dot(freqs) - table[i]['freq'])
-        d_nvec[i] = nvecs[errs.argmin()]
-
-    return d_nvec
+   return d_nvec.T
 
 def closest_resonance(freqs, max_int=12):
     r"""
@@ -619,6 +618,10 @@ def compute_actions(freqs, table, max_int=12):
         Numerical estimates of the orbital actions.
 
     """
+
+    # NOTE: THIS IS BORKED
+    raise NotImplementedError("Sorry.")
+
     ndim = len(freqs)
 
     # get integer vectors for each component
@@ -628,7 +631,7 @@ def compute_actions(freqs, table, max_int=12):
     amp2 = np.zeros([2*max_int+2]*ndim)
     for nvec,row in zip(nvecs, table):
         slc = [slice(x+max_int,x+max_int+1,None) for x in nvec]
-        amp2[slc] += row['A'].real**2
+        amp2[slc] += (row['A']*row['A'].conj()).real
 
     Js = np.zeros(ndim)
     for nvec in nvecs:
