@@ -1,6 +1,5 @@
 # coding: utf-8
 
-<<<<<<< HEAD
 """
     This test requires some data generated using Gala. The data is not stored
     in the repository so you will have to generate this if you want to run
@@ -11,8 +10,6 @@
 
 """
 
-=======
->>>>>>> Remove docstring and extra code
 from __future__ import division, print_function
 
 __author__ = "adrn <adrn@astro.columbia.edu>"
@@ -123,4 +120,3 @@ def test_frequencies():
 
 #     true_J,_,_ = pot.action_angle(w0[:3], w0[3:])
 #     print(true_J)
-
