@@ -15,9 +15,15 @@ The documentation is [available here](http://adrian.pw/superfreq/).
 Dependencies
 ------------
 
-- Python >= 2.7.9
-- Numpy >= 1.8
+- Python >= 2.7 or Python >= 3.5 (untested on other versions)
+- Numpy >= 1.9
 - Cython >= 0.21
+- Astropy >= 1.1
+
+Test dependencies
+-----------------
+
+- [Gary](https://github.com/adrn/gary)
 
 Installation
 ------------
