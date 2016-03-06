@@ -66,8 +66,8 @@ before_install:
 
     # Install gary from master branch - blech, dangerous
     - wget https://github.com/adrn/gary/archive/master.zip
-    - unzip master.zip -d gary
-    - cd gary
+    - unzip master.zip
+    - cd gary-master
     - python setup.py install
 
 install:
