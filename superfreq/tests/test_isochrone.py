@@ -42,9 +42,9 @@ def test_frequencies():
 
         Rphi,vRphi = cartesian_to_poincare(all_x[...,n], all_v[...,n])
         fs = [(Rphi[i] + 1j*vRphi[i]) for i in range(2)]
-        freqs,tbl,ixes = sf.find_fundamental_frequencies(fs, nintvec=10)
+        res = sf.find_fundamental_frequencies(fs, nintvec=10)
 
-        np.testing.assert_allclose(-freqs, true_freq, rtol=1E-8)
+        np.testing.assert_allclose(-res.fund_freqs, true_freq, rtol=1E-8)
 
 # @pytest.mark.skipif('not HAS_DATA')
 # def test_actions():

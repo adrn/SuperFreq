@@ -40,9 +40,9 @@ def test_frequencies():
         true_freq = initial_freqs[:,n]
 
         fs = [(all_x[i,:,n] + 1j*all_v[i,:,n]) for i in range(2)]
-        freqs,tbl,ixes = sf.find_fundamental_frequencies(fs, nintvec=10)
+        res = sf.find_fundamental_frequencies(fs, nintvec=10)
 
-        np.testing.assert_allclose(-freqs, true_freq, rtol=1E-7)
+        np.testing.assert_allclose(-res.fund_freqs, true_freq, rtol=1E-7)
 
 # @pytest.mark.skipif('not HAS_DATA')
 # def test_actions():
