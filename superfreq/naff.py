@@ -14,7 +14,7 @@ import numpy as np
 from numpy.fft import fft, fftfreq
 
 # Project
-from .core import check_for_primes
+from .core import check_for_primes, SuperFreqResult
 from ._naff import naff_frequency
 from .simpsgauss import simpson
 
@@ -397,7 +397,7 @@ class SuperFreq(object):
         comp_ixes[0] = d[ixes[0]]['idx']
 
         if ndim == 1:
-            return fund_freqs, d, ffreq_ixes
+            return SuperFreqResult(fund_freqs, d, ffreq_ixes)
 
         # choose the next nontrivially related frequency in a different component
         #   as the 2nd fundamental frequency
@@ -410,7 +410,7 @@ class SuperFreq(object):
         comp_ixes[1] = d[ixes[0]]['idx']
 
         if ndim == 2:
-            return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
+            return SuperFreqResult(fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()])
 
         # third frequency is the largest amplitude frequency in the remaining component dimension
         abs_freq2 = np.abs(fund_freqs[1])
@@ -423,13 +423,13 @@ class SuperFreq(object):
         if len(ixes) == 0 and self.keep_calm:
             # may be a planar orbit
             logger.warning("May be a planar orbit")
-            return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
+            return SuperFreqResult(fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()])
 
         fund_freqs[2] = d[ixes[0]]['freq']
         ffreq_ixes[2] = ixes[0]
         comp_ixes[2] = d[ixes[0]]['idx']
 
-        return fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()]
+        return SuperFreqResult(fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()])
 
 def find_integer_vectors(freqs, table, max_int=12):
     r"""
