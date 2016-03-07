@@ -28,14 +28,8 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-<<<<<<< HEAD
         - CONDA_DEPENDENCIES='cython h5py jinja2 scipy matplotlib'
         - PIP_DEPENDENCIES='astro-gala'
-=======
-        - CONDA_DEPENDENCIES='Cython scipy h5py'
-        # scipy, pyyaml needed for Gary
-        # h5py needed for superfreq tests
->>>>>>> pyyaml for gary
 
     matrix:
         # Make sure that egg_info works without dependencies
