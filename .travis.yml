@@ -86,7 +86,6 @@ install:
     # other dependencies.
 
     # Install gary from master branch - blech, dangerous
-    - source activate test
     - pip install git+https://github.com/adrn/gary.git
 
 script:
