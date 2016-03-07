@@ -31,7 +31,7 @@ env:
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='Cython scipy h5py'
+        - CONDA_DEPENDENCIES='Cython scipy h5py pyyaml'
         # scipy, pyyaml needed for Gary
         # h5py needed for superfreq tests
 
