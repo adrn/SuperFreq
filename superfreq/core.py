@@ -96,6 +96,9 @@ class SuperFreqResult(object):
         self.fund_freqs_idx = fund_freqs_idx
         self.freq_mode_table = Table(freq_mode_table)
 
+        # derived / computed
+        self.fund_freq_amps = np.asarray(self.freq_mode_table[self.fund_freqs_idx]['|A|'])
+
     def model_f(self, t, component_idx):
         """
         Parameters
