@@ -1,9 +1,9 @@
 This file keeps track of changes between tagged versions of SuperFreq.
 
-0.2 (unreleased)
----------------
+0.1.2 (2016-07-17)
+------------------
 
-- Nothing here yet!
+- Fixed references to Gary (renamed to Gala)
 
 0.1.1 (2015-06-10)
 ------------------
