@@ -13,6 +13,7 @@ import os
 from astropy.utils.data import _find_pkg_data_path
 import h5py
 import numpy as np
+import gala.dynamics as gd
 import gala.potential as gp
 from gala.integrate import DOPRI853Integrator
 from gala.units import galactic

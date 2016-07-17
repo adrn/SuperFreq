@@ -46,7 +46,6 @@ matrix:
 
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
-<<<<<<< HEAD
         - python: 3.4
           env: SETUP_CMD='build_sphinx -w'
 
@@ -57,14 +56,6 @@ matrix:
         # Try with Gala development version
         - python: 3.5
           env: PIP_DEPENDENCIES='git+git://github.com/adrn/gala.git'
-=======
-        - python: 3.5
-          env: SETUP_CMD='build_sphinx -w'
-
-        # Try Astropy development version
-        - python: 3.5
-          env: ASTROPY_VERSION=development
->>>>>>> re-enable build matrix
 
 before_install:
 

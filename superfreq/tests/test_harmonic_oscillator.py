@@ -13,17 +13,17 @@ except ImportError:
 import numpy as np
 import pytest
 try:
-    import gary
-    HAS_gary = True
+    import gala
+    HAS_gala = True
 except ImportError:
-    HAS_gary = False
+    HAS_gala = False
 
 # Project
 from .data.generate import get_harmonic_oscillator_orbits
 from ..naff import SuperFreq # , compute_actions
 
-@pytest.mark.skipif(not HAS_h5py or not HAS_gary,
-                    reason='h5py and gary must be installed to run this test')
+@pytest.mark.skipif(not HAS_h5py or not HAS_gala,
+                    reason='h5py and gala must be installed to run this test')
 def test_frequencies():
     n_orbits = 4
     cache_file = get_harmonic_oscillator_orbits(n_orbits=n_orbits)

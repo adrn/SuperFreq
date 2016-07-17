@@ -523,7 +523,7 @@ def find_frequencies(orbit, force_box=False, silently_fail=True, **kwargs):
 
     Parameters
     ----------
-    orbit : :class:`gary.dynamics.CartesianOrbit`
+    orbit : :class:`gala.dynamics.CartesianOrbit`
         The orbit to analyze.
     force_box : bool (optional)
         Force the routine to assume the orbit is a box orbit. Default is ``False``.
@@ -534,7 +534,6 @@ def find_frequencies(orbit, force_box=False, silently_fail=True, **kwargs):
 
     """
 
-    from gala.dynamics import classify_orbit, align_circulation_with_z
     from gala.coordinates import cartesian_to_poincare_polar
 
     if len(orbit.shape) > 1 and orbit.shape[-1] > 1:

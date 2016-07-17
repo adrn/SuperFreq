@@ -57,9 +57,9 @@ def orbit_to_fs(orbit, units, style='laskar'):
 
     Parameters
     ----------
-    orbit : :class:`gary.dynamics.CartesianOrbit`
+    orbit : :class:`gala.dynamics.CartesianOrbit`
         The input orbit.
-    units : :class:`gary.units.UnitSystem`
+    units : :class:`gala.units.UnitSystem`
         The unit system.
     style : str (optional)
         Currently only supports `style = 'laskar'`.

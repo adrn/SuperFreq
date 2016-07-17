@@ -23,7 +23,7 @@ Dependencies
 Test dependencies
 -----------------
 
-- [Gary](https://github.com/adrn/gary)
+- [Gala](https://github.com/adrn/gala)
 
 Installation
 ------------
