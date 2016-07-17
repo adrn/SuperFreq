@@ -40,4 +40,4 @@ Then run
 python setup.py install
 ```
 
-For the object-oriented interface to `SuperFreq`, these are the only requirements. For more automated frequency finding, you'll also need to install [gary](https://github.com/adrn/gary).
+For the object-oriented interface to `SuperFreq`, these are the only requirements. For more automated frequency finding, you'll also need to install [gala](https://github.com/adrn/gala).

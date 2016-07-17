@@ -517,7 +517,7 @@ def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
     ordinary Cartesian for box). Any extra keyword arguments (``kwargs``) are passed
     to `SuperFreq.find_fundamental_frequencies`.
 
-    Requires Gary.
+    Requires Gala.
 
     Parameters
     ----------
@@ -534,8 +534,8 @@ def find_frequencies(t, w, force_box=False, silently_fail=True, **kwargs):
 
     """
 
-    from gary.dynamics import classify_orbit, align_circulation_with_z
-    from gary.coordinates import cartesian_to_poincare_polar
+    from gala.dynamics import classify_orbit, align_circulation_with_z
+    from gala.coordinates import cartesian_to_poincare_polar
 
     if w.ndim == 3:
         # remove extra length-1 dimension (assumed to be axis=1)

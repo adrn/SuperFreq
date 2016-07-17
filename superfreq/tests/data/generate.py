@@ -12,9 +12,9 @@ import os
 # Third-party
 import h5py
 import numpy as np
-import gary.potential as gp
-from gary.integrate import DOPRI853Integrator
-from gary.units import galactic
+import gala.potential as gp
+from gala.integrate import DOPRI853Integrator
+from gala.units import galactic
 
 def main(norbits=100, seed=42):
     np.random.seed(seed)

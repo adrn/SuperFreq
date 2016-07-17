@@ -1,9 +1,9 @@
 # coding: utf-8
 
 """
-    This test requires some data generated using Gary. The data is not stored
+    This test requires some data generated using Gala. The data is not stored
     in the repository so you will have to generate this if you want to run
-    this test suite. Generating the test data requires both Gary and
+    this test suite. Generating the test data requires both Gala and
     HDF5 / h5py. The script to generate the data can be run with::
 
         python superfreq/tests/data/generate.py
@@ -72,9 +72,9 @@ def test_frequencies():
 #         # np.testing.assert_allclose(np.abs(freqs), true_actn, rtol=1E-1)
 
 # def test_single_orbit_actions():
-#     import gary.potential as gp
-#     from gary.integrate import DOPRI853Integrator
-#     from gary.units import galactic
+#     import gala.potential as gp
+#     from gala.integrate import DOPRI853Integrator
+#     from gala.units import galactic
 
 #     w0 = np.array([15.,0,0,0,0.12,0.])
 #     pot = gp.IsochronePotential(m=1E11, b=5., units=galactic)
