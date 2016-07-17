@@ -50,6 +50,10 @@ matrix:
         - python: 3.5
           env: ASTROPY_VERSION=development
 
+        # Try with Gala development version
+        - python: 3.5
+          env: PIP_DEPENDENCIES='git+git://github.com/adrn/gala.git'
+
 before_install:
 
     # If there are matplotlib tests, comment these out to
