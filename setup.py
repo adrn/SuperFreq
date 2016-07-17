@@ -118,7 +118,7 @@ setup(name=PACKAGENAME,
       use_2to3=True,
       entry_points=entry_points,
       classifiers=[
-          'Development Status :: 3 - Alpha'
+          'Development Status :: 3 - Alpha',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: MIT License',
           'Operating System :: OS Independent',
