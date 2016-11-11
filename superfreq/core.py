@@ -114,6 +114,6 @@ class SuperFreqResult(object):
         model_f : :class:`numpy.ndarray`
         """
         t = np.asarray(t)
-        tbl = self.freq_mode_table[self.freq_mode_table['idx'] == 0]
+        tbl = self.freq_mode_table[self.freq_mode_table['idx'] == component_idx]
         model_f = (tbl['A'][None]*np.exp(1j*tbl['freq'][None]*t[:,None])).sum(axis=1)
         return model_f
