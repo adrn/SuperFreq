@@ -1,0 +1,18 @@
+name: superfreq-dev
+
+channels:
+  - astropy
+
+dependencies:
+  - python=3
+  - astropy
+  - numpy
+  - matplotlib
+  - scipy
+  - cython
+  - pytest
+  - sphinx
+  - h5py
+  - pip:
+    - pytest-astropy
+    - astro-gala
