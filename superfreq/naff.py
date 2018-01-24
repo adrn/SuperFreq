@@ -388,8 +388,8 @@ class SuperFreq(object):
             component_ix.append(np.zeros_like(omega) + i)  # index of the component
             nfreqstotal += len(omega)
 
-        d = np.zeros(nfreqstotal, dtype=zip(('freq','A','|A|','phi','idx'),
-                                            ('f8','c8','f8','f8',np.int)))
+        d = np.zeros(nfreqstotal, dtype=list(zip(('freq','A','|A|','phi','idx'),
+                                                 ('f8','c8','f8','f8',np.int))))
         d['freq'] = np.concatenate(freqs)
         d['A'] = np.concatenate(As)
         d['|A|'] = np.concatenate(amps)

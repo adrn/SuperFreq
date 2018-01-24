@@ -93,8 +93,8 @@ def get_isochrone_orbits(n_orbits=100, seed=42):
         dt = period / nsteps_per_period
         orbit = pot.integrate_orbit(w0[i], dt=dt, nsteps=nsteps,
                                     Integrator=DOPRI853Integrator)
-        all_x[..., i] = orbit.pos.decompose(pot.units).value[:2]
-        all_v[..., i] = orbit.vel.decompose(pot.units).value[:2]
+        all_x[..., i] = orbit.pos.xyz.decompose(pot.units).value[:2]
+        all_v[..., i] = orbit.vel.d_xyz.decompose(pot.units).value[:2]
         all_t[..., i] = orbit.t.decompose(pot.units).value
 
     orb = f.create_group("orbits")
@@ -174,8 +174,8 @@ def get_harmonic_oscillator_orbits(n_orbits=100, seed=42):
         dt = period / nsteps_per_period
         orbit = pot.integrate_orbit(w0[i], dt=dt, nsteps=nsteps,
                                     Integrator=DOPRI853Integrator)
-        all_x[..., i] = orbit.pos.decompose(pot.units).value[:2]
-        all_v[..., i] = orbit.vel.decompose(pot.units).value[:2]
+        all_x[..., i] = orbit.pos.xyz.decompose(pot.units).value[:2]
+        all_v[..., i] = orbit.vel.d_xyz.decompose(pot.units).value[:2]
         all_t[..., i] = orbit.t.decompose(pot.units).value
 
     orb = f.create_group("orbits")
