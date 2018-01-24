@@ -3,7 +3,7 @@ SuperFreq
 
 Frequency analysis of orbital time series.
 
-|Build Status|
+|Build Status| |coverage|
 
 This is close to that implemented by Monica Valluri in `NAFF`_, which
 itself is an implementation of the algorithm first used by Jacques
@@ -45,3 +45,5 @@ install `gala`_.
 
 .. |Build Status| image:: https://travis-ci.org/adrn/SuperFreq.svg
    :target: https://travis-ci.org/adrn/SuperFreq
+.. |coverage| image:: https://coveralls.io/repos/github/adrn/SuperFreq/badge.svg?branch=master
+   :target: https://coveralls.io/github/adrn/SuperFreq?branch=master
