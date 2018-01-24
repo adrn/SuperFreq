@@ -1,15 +1,19 @@
-language: python
+# We set the language to c because python isn't supported on the MacOS X nodes
+# on Travis. However, the language ends up being irrelevant anyway, since we
+# install Python ourselves using conda.
+language: c
 
-python:
-    - 2.7
-    - 3.4
-    - 3.5
+os:
+    - linux
 
 # Setting sudo to false opts in to Travis-CI container-based builds.
 sudo: false
 
-# The apt packages below are needed for sphinx builds, which can no longer
-# be installed with sudo apt-get.
+# The apt packages below are needed for sphinx builds. A full list of packages
+# that can be included can be found here:
+#
+# https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-precise
+
 addons:
     apt:
         packages:
@@ -19,61 +23,105 @@ addons:
 
 env:
     global:
+
         # The following versions are the 'default' for tests, unless
-        # overidden underneath. They are defined here in order to save having
+        # overridden underneath. They are defined here in order to save having
         # to repeat them for all configurations.
+        - PYTHON_VERSION=3.6
         - NUMPY_VERSION=stable
         - ASTROPY_VERSION=stable
+        - MAIN_CMD='python setup.py'
         - SETUP_CMD='test'
+        - PIP_DEPENDENCIES='astro-gala'
+        - EVENT_TYPE='pull_request push'
+
+
         # For this package-template, we include examples of Cython modules,
         # so Cython is required for testing. If your package does not include
         # Cython code, you can set CONDA_DEPENDENCIES=''
-        - CONDA_DEPENDENCIES='cython h5py jinja2 scipy matplotlib'
-        - PIP_DEPENDENCIES='astro-gala'
+        - CONDA_DEPENDENCIES='Cython scipy h5py pyyaml matplotlib'
+
+        # List other runtime dependencies for the package that are available as
+        # pip packages here.
+        # - PIP_DEPENDENCIES=''
+
+        # Conda packages for affiliated packages are hosted in channel
+        # "astropy" while builds for astropy LTS with recent numpy versions
+        # are in astropy-ci-extras. If your package uses either of these,
+        # add the channels to CONDA_CHANNELS along with any other channels
+        # you want to use.
+        - CONDA_CHANNELS='astropy-ci-extras astropy'
+
+        # If there are matplotlib or other GUI tests, uncomment the following
+        # line to use the X virtual framebuffer.
+        - SETUP_XVFB=True
 
     matrix:
         # Make sure that egg_info works without dependencies
-        - SETUP_CMD='egg_info'
-        # Try all python versions with the latest numpy
-        - SETUP_CMD='test'
+        - PYTHON_VERSION=3.5 SETUP_CMD='egg_info'
+        - PYTHON_VERSION=3.6 SETUP_CMD='egg_info'
 
 matrix:
-    include:
 
-        # Do a coverage test in Python 2.
-        - python: 2.7
+    # Don't wait for allowed failures
+    fast_finish: true
+
+    include:
+        # Try MacOS X
+        - os: osx
+          env: SETUP_CMD='test'
+
+        # Do a coverage test.
+        - os: linux
           env: SETUP_CMD='test --coverage'
 
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
-        - python: 3.4
-          env: SETUP_CMD='build_sphinx -w'
+        - os: linux
+          env: SETUP_CMD='build_docs -w'
 
-        # Try Astropy development version
-        - python: 3.5
-          env: ASTROPY_VERSION=development
+        - os: linux
+          env: PYTHON_VERSION=3.5 NUMPY_VERSION=1.13
 
-        # Try with Gala development version
-        - python: 3.5
-          env: PIP_DEPENDENCIES='git+git://github.com/adrn/gala.git'
+        # Development version of Gala
+        - os: linux
+          env: PIP_DEPENDENCIES='git+https://github.com/adrn/gala'
 
-before_install:
+        # Try numpy pre-release
+        - os: linux
+          env: NUMPY_VERSION=prerelease
+               EVENT_TYPE='pull_request push cron'
 
-    # If there are matplotlib tests, comment these out to
-    # Make sure that interactive matplotlib backends work
-    - export DISPLAY=:99.0
-    - sh -e /etc/init.d/xvfb start
+        # Do a PEP8 test with pycodestyle
+        # - os: linux
+        #   env: MAIN_CMD='pycodestyle superfreq --count' SETUP_CMD=''
+
+    # allow_failures:
+    #     # Do a PEP8 test with pycodestyle
+    #     # (allow to fail unless your code completely compliant)
+    #     - os: linux
+    #       env: MAIN_CMD='pycodestyle twobody --count' SETUP_CMD=''
 
 install:
 
+    # We now use the ci-helpers package to set up our testing environment.
+    # This is done by using Miniconda and then using conda and pip to install
+    # dependencies. Which dependencies are installed using conda and pip is
+    # determined by the CONDA_DEPENDENCIES and PIP_DEPENDENCIES variables,
+    # which should be space-delimited lists of package names. See the README
+    # in https://github.com/astropy/ci-helpers for information about the full
+    # list of environment variables that can be used to customize your
+    # environment. In some cases, ci-helpers may not offer enough flexibility
+    # in how to install a package, in which case you can have additional
+    # commands in the install: section below.
+
     - git clone git://github.com/astropy/ci-helpers.git
-    - source ci-helpers/travis/setup_conda_$TRAVIS_OS_NAME.sh
+    - source ci-helpers/travis/setup_conda.sh
 
 script:
-   - python setup.py $SETUP_CMD
+   - $MAIN_CMD $SETUP_CMD
 
 after_success:
-    # If coveralls.io is set up for this package, uncomment the line
-    # below and replace "packagename" with the name of your package.
+    # If coveralls.io is set up for this package, uncomment the line below.
     # The coveragerc file may be customized as needed for your package.
-    # - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='packagename/tests/coveragerc'; fi
+    - if [[ $SETUP_CMD == *coverage* ]]; then coveralls --rcfile='superfreq/tests/coveragerc'; fi

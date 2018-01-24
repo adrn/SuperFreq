@@ -1,29 +1,18 @@
 # coding: utf-8
 
-"""
-    This test requires some data generated using Gala. The data is not stored
-    in the repository so you will have to generate this if you want to run
-    this test suite. Generating the test data requires both Gala and
-    HDF5 / h5py. The script to generate the data can be run with::
-
-        python superfreq/tests/data/generate.py
-
-"""
-
 # Third-party
 import h5py
 import numpy as np
 import pytest
 
 # Project
-from .helpers import cartesian_to_poincare
-from .data.generate import get_isochrone_orbits
+from .data.generate import get_harmonic_oscillator_orbits
 from ..naff import SuperFreq # , compute_actions
 
 
 def test_frequencies():
-    n_orbits = 8
-    cache_file = get_isochrone_orbits(n_orbits=n_orbits)
+    n_orbits = 4
+    cache_file = get_harmonic_oscillator_orbits(n_orbits=n_orbits)
 
     with h5py.File(cache_file, 'r') as f:
         all_t = f['orbits']['t'][:]
@@ -36,11 +25,10 @@ def test_frequencies():
         sf = SuperFreq(all_t[:,n])
         true_freq = initial_freqs[:,n]
 
-        Rphi,vRphi = cartesian_to_poincare(all_x[...,n], all_v[...,n])
-        fs = [(Rphi[i] + 1j*vRphi[i]) for i in range(2)]
+        fs = [(all_x[i,:,n] + 1j*all_v[i,:,n]) for i in range(2)]
         res = sf.find_fundamental_frequencies(fs, nintvec=10)
 
-        np.testing.assert_allclose(-res.fund_freqs, true_freq, rtol=1E-8)
+        np.testing.assert_allclose(-res.fund_freqs, true_freq, rtol=1E-7)
 
 # @pytest.mark.skipif('not HAS_DATA')
 # def test_actions():
@@ -65,9 +53,9 @@ def test_frequencies():
 #         # np.testing.assert_allclose(np.abs(freqs), true_actn, rtol=1E-1)
 
 # def test_single_orbit_actions():
-#     import gala.potential as gp
-#     from gala.integrate import DOPRI853Integrator
-#     from gala.units import galactic
+#     import gary.potential as gp
+#     from gary.integrate import DOPRI853Integrator
+#     from gary.units import galactic
 
 #     w0 = np.array([15.,0,0,0,0.12,0.])
 #     pot = gp.IsochronePotential(m=1E11, b=5., units=galactic)
