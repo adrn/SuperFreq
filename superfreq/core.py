@@ -73,8 +73,8 @@ def orbit_to_fs(orbit, units, style='laskar'):
     if style != 'laskar':
         raise ValueError("Currently only supports style = 'laskar'")
 
-    q = np.squeeze(orbit.pos.decompose(units).value)
-    p = np.squeeze(orbit.vel.decompose(units).value)
+    q = np.squeeze(orbit.pos.xyz.decompose(units).value)
+    p = np.squeeze(orbit.vel.d_xyz.decompose(units).value)
 
     if q.ndim > 2:
         raise ValueError("This function only supports converting single "
