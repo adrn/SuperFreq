@@ -2,14 +2,12 @@
 
 """ Generate test data. """
 
-from __future__ import division, print_function
-
-__author__ = "adrn <adrn@astro.columbia.edu>"
-
 # Standard library
 import os
 
 # Third-party
+from astropy.constants import G
+import astropy.units as u
 from astropy.utils.data import _find_pkg_data_path
 import h5py
 import numpy as np
@@ -45,8 +43,9 @@ def get_isochrone_orbits(n_orbits=100, seed=42):
 
     # velocity magnitude
     menc = pot.mass_enclosed([r, 0., 0.])
-    vc = np.sqrt(pot.G * menc / r)
-    vmag = np.random.normal(vc-0.01, vc*0.01, size=n_orbits)
+    vc = np.sqrt(pot.G * menc.value / r)
+    vmag = np.random.normal(vc-0.01, vc*0.01,
+                            size=n_orbits)
 
     # for position
     phi = np.random.uniform(0, 2*np.pi, size=n_orbits)
