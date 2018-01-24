@@ -80,13 +80,12 @@ matrix:
         - os: linux
           env: SETUP_CMD='build_docs -w'
 
-        # Try all python versions and Numpy versions. Since we can assume that
-        # the Numpy developers have taken care of testing Numpy with different
-        # versions of Python, we can vary Python and Numpy versions at the same
-        # time.
-
         - os: linux
           env: PYTHON_VERSION=3.5 NUMPY_VERSION=1.13
+
+        # Development version of Gala
+        - os: linux
+          env: PIP_DEPENDENCIES='git+https://github.com/adrn/gala'
 
         # Try numpy pre-release
         - os: linux
