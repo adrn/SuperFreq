@@ -2,21 +2,13 @@
 
 """ Simple unit tests of SuperFreq """
 
-from __future__ import division, print_function
-
-__author__ = "adrn <adrn@astro.columbia.edu>"
-
-# Standard library
-import logging
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
-
 # Third-party
 from astropy.utils import isiterable
 import numpy as np
 
 # Project
 from ..naff import SuperFreq
+
 
 def test_cy_naff():
     """

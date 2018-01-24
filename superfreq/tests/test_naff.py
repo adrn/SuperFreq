@@ -2,9 +2,8 @@
 
 """ Test NAFF stuff """
 
-from __future__ import division, print_function
-
 import numpy as np
+
 
 def test_cy_naff():
     from ..naff import naff_frequency, SuperFreq

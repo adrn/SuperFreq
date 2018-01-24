@@ -10,31 +10,17 @@
 
 """
 
-from __future__ import division, print_function
-
-__author__ = "adrn <adrn@astro.columbia.edu>"
-
 # Third-party
-try:
-    import h5py
-    HAS_h5py = True
-except ImportError:
-    HAS_h5py = False
+import h5py
 import numpy as np
 import pytest
-try:
-    import gala
-    HAS_gala = True
-except ImportError:
-    HAS_gala = False
 
 # Project
 from .helpers import cartesian_to_poincare
 from .data.generate import get_isochrone_orbits
 from ..naff import SuperFreq # , compute_actions
 
-@pytest.mark.skipif(not HAS_h5py or not HAS_gala,
-                    reason='h5py and gala must be installed to run this test')
+
 def test_frequencies():
     n_orbits = 8
     cache_file = get_isochrone_orbits(n_orbits=n_orbits)

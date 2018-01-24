@@ -1,29 +1,15 @@
 # coding: utf-8
 
-from __future__ import division, print_function
-
-__author__ = "adrn <adrn@astro.columbia.edu>"
-
 # Third-party
-try:
-    import h5py
-    HAS_h5py = True
-except ImportError:
-    HAS_h5py = False
+import h5py
 import numpy as np
 import pytest
-try:
-    import gala
-    HAS_gala = True
-except ImportError:
-    HAS_gala = False
 
 # Project
 from .data.generate import get_harmonic_oscillator_orbits
 from ..naff import SuperFreq # , compute_actions
 
-@pytest.mark.skipif(not HAS_h5py or not HAS_gala,
-                    reason='h5py and gala must be installed to run this test')
+
 def test_frequencies():
     n_orbits = 4
     cache_file = get_harmonic_oscillator_orbits(n_orbits=n_orbits)
@@ -108,4 +94,3 @@ def test_frequencies():
 
 #     true_J,_,_ = pot.action_angle(w0[:3], w0[3:])
 #     print(true_J)
-
