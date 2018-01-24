@@ -32,3 +32,4 @@ Documentation
    install
    getting-started
    reference-api
+   dev
