@@ -126,7 +126,7 @@ class SimpleBase(object):
               np.linspace(0., 150., 12000) + 50*(2*np.pi/self.omega[0])]
 
         for i,t in enumerate(ts):
-            logger.debug(i, t.min(), t.max(), len(t))
+            print(i, t.min(), t.max(), len(t))
             f = self.make_f(t)
             nfreq = len(self.omega)
 
@@ -150,7 +150,7 @@ class SimpleBase(object):
     def test_rolling_window(self):
         ts = [np.linspace(0.+dd, 100.+dd, 10000) for dd in np.linspace(0,20,64)]
         for i,t in enumerate(ts):
-            logger.debug(i, t.min(), t.max(), len(t))
+            print(i, t.min(), t.max(), len(t))
             f = self.make_f(t)
             nfreq = len(self.omega)
 

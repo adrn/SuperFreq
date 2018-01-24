@@ -1,13 +1,7 @@
 # coding: utf-8
 
-from __future__ import division, print_function
-
-__author__ = "adrn <adrn@astro.columbia.edu>"
-
 # Standard library
 import time
-import logging
-logger = logging.getLogger(__name__)
 
 # Third-party
 import numpy as np
@@ -17,27 +11,42 @@ from numpy.fft import fft, fftfreq
 from .core import check_for_primes, SuperFreqResult
 from ._naff import naff_frequency
 from .simpsgauss import simpson
+from .log import logger
 
 __all__ = ['SuperFreq', 'find_frequencies',
            'find_integer_vectors', 'closest_resonance',
            'compute_actions']
 
+
 def hamming(t_T, p):
-    return 2.**p * (np.math.factorial(p))**2. / np.math.factorial(2*p) * (1. + np.cos(np.pi*t_T))**p
+    """Compute a Hamming filter / window function.
+
+    Parameters
+    ----------
+    t_T : numeric, array_like
+        Time values normalized by the period.
+    p : numeric
+        Exponent of filter.
+    """
+    p_fac = np.math.factorial(p)
+    p2_fac = np.math.factorial(2*p)
+    return 2. ** p * p_fac**2. / p2_fac * (1. + np.cos(np.pi*t_T))**p
+
 
 class SuperFreq(object):
     """
-    Implementation of the Numerical Analysis of Fundamental Frequencies
-    method of Laskar, later modified by Valluri and Merritt (see references below),
+    Implementation of the Numerical Analysis of Fundamental Frequencies method
+    of Laskar, later modified by Valluri and Merritt (see references below),
     with some slight modifications.
 
-    This algorithm attempts to numerically find the fundamental frequencies of an
-    input orbit (time series) and can also find approximate actions for the orbit.
-    The basic idea is to Fourier transform the orbit convolved with a Hanning filter,
-    find the most significant peak, subtract that frequency, and iterate on this
-    until convergence or for a fixed number of terms. The fundamental frequencies
-    can then be solved for by assuming that the frequencies found by the above method
-    are integer combinations of the fundamental frequencies.
+    This algorithm attempts to numerically find the fundamental frequencies of
+    an input orbit (time series) and can also find approximate actions for the
+    orbit.  The basic idea is to Fourier transform the orbit convolved with a
+    Hanning filter, find the most significant peak, subtract that frequency, and
+    iterate on this until convergence or for a fixed number of terms. The
+    fundamental frequencies can then be solved for by assuming that the
+    frequencies found by the above method are integer combinations of the
+    fundamental frequencies.
 
     For more information, see:
 
@@ -51,13 +60,14 @@ class SuperFreq(object):
     t : array_like
         Array of times.
     p : int (optional)
-        Coefficient for Hamming filter -- default p=1 which is a Hann filter,
+        Coefficient for Hamming filter -- default p=1 which is a Hanning filter,
         used by Laskar and Valluri/Merritt.
     keep_calm : bool (optional)
         If something fails when solving for the frequency of a given component,
-        ``keep_calm`` determines whether to throw a RuntimeError or exit gracefully.
-        If set to ``True``, will exit quietly and carry on to the next component. If
-        ``False``, will die if any frequency determination fails.
+        ``keep_calm`` determines whether to throw a RuntimeError or exit
+        gracefully.  If set to ``True``, will exit quietly and carry on to the
+        next component. If ``False``, will die if any frequency determination
+        fails.
 
     """
 
@@ -67,8 +77,8 @@ class SuperFreq(object):
         self.n = check_for_primes(n)
 
         if self.n != len(t):
-            logger.debug("Truncating time series to length={0} to avoid large prime divisors."
-                         .format(self.n))
+            logger.debug("Truncating time series to length={0} to avoid large "
+                         "prime divisors.".format(self.n))
 
         # array of times
         self.t = t[:self.n]
@@ -88,18 +98,19 @@ class SuperFreq(object):
         # p not equal to 1
         self.chi = hamming(self.tz/self.T, p)
 
-        # when solving for frequencies and removing components from the time series,
-        #   if something fails for a given component and keep_calm is set to True,
-        #   SuperFreq will exit gracefully instead of throwing a RuntimeError
+        # when solving for frequencies and removing components from the time
+        # series, if something fails for a given component and keep_calm is set
+        # to True, SuperFreq will exit gracefully instead of throwing a
+        # RuntimeError
         self.keep_calm = keep_calm
 
     def frequency(self, f, omega0=None, return_fft=False):
         """
-        Find the most significant frequency of a (complex) time series, :math:`f(t)`,
-        by Fourier transforming the function convolved with a Hanning filter and
-        picking the most significant peak. This assumes the time series, `f`,
-        is aligned with / given at the times specified when constructing this
-        object. An internal function.
+        Find the most significant frequency of a (complex) time series,
+        :math:`f(t)`, by Fourier transforming the function convolved with a
+        Hanning filter and picking the most significant peak. This assumes the
+        time series, `f`, is aligned with / given at the times specified when
+        constructing this object. An internal function.
 
         Parameters
         ----------
@@ -124,12 +135,13 @@ class SuperFreq(object):
         f = np.array(f)
 
         if len(f) > self.n:
-            logger.warning("Truncating time series to match shape of time array ({0}) ({1})"
-                           .format(len(f), self.n))
+            logger.warning("Truncating time series to match shape of time array"
+                           " ({0}) ({1})".format(len(f), self.n))
             f = f[:self.n]
 
         elif len(f) < self.n:
-            raise ValueError("Input time-series, f, has less elements than time array, t.")
+            raise ValueError("Input time-series, f, has less elements than time"
+                             " array, t.")
 
         # take Fourier transform of input (complex) function f
         t1 = time.time()
@@ -140,13 +152,14 @@ class SuperFreq(object):
         omegas = 2*np.pi*fftfreq(f.size, self.dt)
 
         if omega0 is None:
-            # omega_max_ix is the initial guess / centering frequency for optimization
-            #   against the Hanning-convolved Fourier spectrum
+            # omega_max_ix is the initial guess / centering frequency for
+            # optimization against the Hanning-convolved Fourier spectrum
             abs_fff = np.abs(fff)
             omega_max_ix = abs_fff.argmax()
             if np.allclose(abs_fff[omega_max_ix], 0):
                 # return early -- "this may be an axial or planar orbit"
-                logger.debug("Returning early - may be an axial or planar orbit?")
+                logger.debug("Returning early - may be an axial or planar "
+                             "orbit?")
                 return 0.
 
             # frequency associated with the peak index
@@ -174,11 +187,12 @@ class SuperFreq(object):
         f : array_like
             Complex time-series, e.g., :math:`x(t) + i \, v_x(t)`.
         nintvec : int (optional)
-            Number of integer vectors to find or number of frequencies to find and subtract.
+            Number of integer vectors to find or number of frequencies to find
+            and subtract.
         break_condition : numeric (optional)
-            Break the iterations of the time series maximum value or amplitude of the
-            subtracted frequency is smaller than this value. Set to ``None`` if you want
-            to always iterate for `nintvec` frequencies.
+            Break the iterations of the time series maximum value or amplitude
+            of the subtracted frequency is smaller than this value. Set to
+            ``None`` if you want to always iterate for `nintvec` frequencies.
 
         Returns
         -------
@@ -192,7 +206,7 @@ class SuperFreq(object):
         """
 
         # initialize container arrays
-        ecap = np.zeros((nintvec,len(self.t)), dtype=np.complex64)
+        ecap = np.zeros((nintvec, len(self.t)), dtype=np.complex64)
         omega = np.zeros(nintvec)
         A = np.zeros(nintvec)
         phi = np.zeros(nintvec)
@@ -226,7 +240,7 @@ class SuperFreq(object):
             fk -= ab*ecap[k]
 
             logger.log(5, "{}  {:.6f}  {:.6f}  {:.2f}  {:.6f}"
-                       .format(k,omega[k],A[k],np.degrees(phi[k]),ab))
+                       .format(k, omega[k], A[k], np.degrees(phi[k]), ab))
 
             if break_condition is not None and A[k] < break_condition:
                 broke = True
@@ -322,17 +336,17 @@ class SuperFreq(object):
 
         This is most commonly a 2D array, a tuple, or iterable of individual
         complex time series. For example, if your orbit is 2D, you might pass in
-        a tuple with :math:`x +i \, v_x` as the 0th element and :math:`y +i \, v_y`
-        as the 1st element.
+        a tuple with :math:`x +i \, v_x` as the 0th element and :math:`y +i \,
+        v_y` as the 1st element.
 
         Any extra keyword arguments are passed to `SuperFreq.frecoder()`.
 
         Parameters
         ----------
         fs : array_like, iterable
-            The iterable of (complex) time series. If an array-like object, should
-            be 2D with length along axis=0 equal to the number of time series. See
-            description above.
+            The iterable of (complex) time series. If an array-like object,
+            should be 2D with length along axis=0 equal to the number of time
+            series. See description above.
         min_freq : numeric (optional)
             The minimum (absolute) frequency value to consider a non-zero
             frequency component.
@@ -399,8 +413,8 @@ class SuperFreq(object):
         if ndim == 1:
             return SuperFreqResult(fund_freqs, d, ffreq_ixes)
 
-        # choose the next nontrivially related frequency in a different component
-        #   as the 2nd fundamental frequency
+        # choose the next nontrivially related frequency in a different
+        # component as the 2nd fundamental frequency
         abs_freq1 = np.abs(fund_freqs[0])
         ixes = np.where((np.abs(d['freq']) > min_freq) &
                         (d['idx'] != d[ffreq_ixes[0]]['idx']) &  # different component index
@@ -412,7 +426,8 @@ class SuperFreq(object):
         if ndim == 2:
             return SuperFreqResult(fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()])
 
-        # third frequency is the largest amplitude frequency in the remaining component dimension
+        # third frequency is the largest amplitude frequency in the remaining
+        # component dimension
         abs_freq2 = np.abs(fund_freqs[1])
         ixes = np.where((np.abs(d['freq']) > min_freq) &
                         (d['idx'] != d[ffreq_ixes[0]]['idx']) &  # different component index
@@ -429,7 +444,9 @@ class SuperFreq(object):
         ffreq_ixes[2] = ixes[0]
         comp_ixes[2] = d[ixes[0]]['idx']
 
-        return SuperFreqResult(fund_freqs[comp_ixes.argsort()], d, ffreq_ixes[comp_ixes.argsort()])
+        return SuperFreqResult(fund_freqs[comp_ixes.argsort()],
+                               d, ffreq_ixes[comp_ixes.argsort()])
+
 
 def find_integer_vectors(freqs, table, max_int=12):
     r"""
@@ -463,16 +480,18 @@ def find_integer_vectors(freqs, table, max_int=12):
     ncomponents = len(table)
 
     # define meshgrid of integer vectors
-    grid = np.meshgrid(*[np.arange(-max_int,max_int+1,dtype=int) for i in range(nfreqs)])
+    grid = np.meshgrid(*[np.arange(-max_int, max_int+1, dtype=int)
+                         for i in range(nfreqs)])
     nvecs = np.vstack(list(map(np.ravel, grid))).T
 
     # integer vectors
-    d_nvec = np.zeros((ncomponents,nfreqs)).astype(int)
+    d_nvec = np.zeros((ncomponents, nfreqs)).astype(int)
     for i in range(ncomponents):
         errs = np.abs(nvecs.dot(freqs) - table[i]['freq'])
         d_nvec[i] = nvecs[errs.argmin()]
 
     return d_nvec.T
+
 
 def closest_resonance(freqs, max_int=12):
     r"""
@@ -503,7 +522,7 @@ def closest_resonance(freqs, max_int=12):
 
     # define meshgrid of integer vectors
     nfreqs = len(freqs)
-    slc = [slice(-max_int,max_int+1,None)]*nfreqs
+    slc = [slice(-max_int, max_int+1, None)] * nfreqs
     nvecs = np.vstack(np.vstack(np.mgrid[slc].T))
 
     ndf = nvecs.dot(freqs)
@@ -511,13 +530,14 @@ def closest_resonance(freqs, max_int=12):
 
     return nvecs[min_ix], ndf[min_ix]
 
+
 def find_frequencies(orbit, force_box=False, silently_fail=True, **kwargs):
     """
     Compute the fundamental frequencies of an orbit, ``w``. If not forced, this
-    function tries to figure out whether the input orbit is a tube or box orbit and
-    then uses the appropriate set of coordinates (Poincaré polar coordinates for tube,
-    ordinary Cartesian for box). Any extra keyword arguments (``kwargs``) are passed
-    to `SuperFreq.find_fundamental_frequencies`.
+    function tries to figure out whether the input orbit is a tube or box orbit
+    and then uses the appropriate set of coordinates (Poincaré polar coordinates
+    for tube, ordinary Cartesian for box). Any extra keyword arguments
+    (``kwargs``) are passed to `SuperFreq.find_fundamental_frequencies`.
 
     Requires Gala.
 
@@ -526,11 +546,14 @@ def find_frequencies(orbit, force_box=False, silently_fail=True, **kwargs):
     orbit : :class:`gala.dynamics.CartesianOrbit`
         The orbit to analyze.
     force_box : bool (optional)
-        Force the routine to assume the orbit is a box orbit. Default is ``False``.
+        Force the routine to assume the orbit is a box orbit. Default is
+        ``False``.
     silently_fail : bool (optional)
-        Return NaN's and None's if SuperFreq fails, rather than raising an exception.
+        Return NaN's and None's if SuperFreq fails, rather than raising an
+        exception.
     **kwargs
-        Any extra keyword arguments are passed to `SuperFreq.find_fundamental_frequencies`.
+        Any extra keyword arguments are passed to
+        `SuperFreq.find_fundamental_frequencies`.
 
     """
 
@@ -595,6 +618,7 @@ def find_frequencies(orbit, force_box=False, silently_fail=True, **kwargs):
 
     return freqs, d, ixes, is_tube
 
+
 def compute_actions(freqs, table, max_int=12):
     """
     Reconstruct approximations to the actions using Percival's equation.
@@ -635,13 +659,13 @@ def compute_actions(freqs, table, max_int=12):
 
     # container to store |X_k|^2
     amp2 = np.zeros([2*max_int+2]*ndim)
-    for nvec,row in zip(nvecs, table):
-        slc = [slice(x+max_int,x+max_int+1,None) for x in nvec]
+    for nvec, row in zip(nvecs, table):
+        slc = [slice(x+max_int, x+max_int+1, None) for x in nvec]
         amp2[slc] += (row['A']*row['A'].conj()).real
 
     Js = np.zeros(ndim)
     for nvec in nvecs:
-        slc = [slice(x+max_int,x+max_int+1,None) for x in nvec]
+        slc = [slice(x+max_int, x+max_int+1, None) for x in nvec]
         Js += nvec * nvec.dot(freqs) * float(amp2[slc])
 
     return Js

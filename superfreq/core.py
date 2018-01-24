@@ -1,14 +1,11 @@
 # coding: utf-8
 
-from __future__ import division, print_function
-
-__author__ = "adrn <adrn@astro.columbia.edu>"
-
 # Third-party
 from astropy.table import Table
 import numpy as np
 
 __all__ = ['check_for_primes', 'orbit_to_fs']
+
 
 def check_for_primes(n, max_prime=41):
     """
@@ -40,6 +37,7 @@ def check_for_primes(n, max_prime=41):
         n = check_for_primes(n)
 
     return n
+
 
 def orbit_to_fs(orbit, units, style='laskar'):
     r"""
@@ -88,8 +86,8 @@ def orbit_to_fs(orbit, units, style='laskar'):
 
     return fs
 
-# Result object:
-class SuperFreqResult(object):
+
+class SuperFreqResult:
 
     def __init__(self, fund_freqs, freq_mode_table, fund_freqs_idx):
         self.fund_freqs = fund_freqs
@@ -115,5 +113,6 @@ class SuperFreqResult(object):
         """
         t = np.asarray(t)
         tbl = self.freq_mode_table[self.freq_mode_table['idx'] == component_idx]
-        model_f = (tbl['A'][None]*np.exp(1j*tbl['freq'][None]*t[:,None])).sum(axis=1)
+        X = tbl['A'][None] * np.exp(1j*tbl['freq'][None] * t[:,None])
+        model_f = X.sum(axis=1)
         return model_f
