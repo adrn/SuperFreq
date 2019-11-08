@@ -60,7 +60,7 @@ def get_isochrone_orbits(n_orbits=100, seed=42):
     vel = np.vstack((vx, vy, vz))*galactic['length']/galactic['time']
 
     # compute true actions, true frequencies
-    w0 = gd.CartesianPhaseSpacePosition(pos=pos, vel=vel)
+    w0 = gd.PhaseSpacePosition(pos=pos, vel=vel)
     act, ang, frq = pot.action_angle(w0)
 
     # reshape down to 2d
@@ -139,7 +139,7 @@ def get_harmonic_oscillator_orbits(n_orbits=100, seed=42):
     vel = np.zeros((3, n_orbits))*galactic['length']/galactic['time']
 
     # compute true actions, true frequencies
-    w0 = gd.CartesianPhaseSpacePosition(pos=pos, vel=vel)
+    w0 = gd.PhaseSpacePosition(pos=pos, vel=vel)
     act, ang, frq = pot.action_angle(w0)
     frq = np.repeat(frq[:,np.newaxis], axis=1, repeats=n_orbits)
 

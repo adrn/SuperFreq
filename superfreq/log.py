@@ -2,7 +2,6 @@
 import logging
 
 # Third-party
-from astropy.extern.six import PY3
 from astropy.logger import StreamHandler
 from astropy.utils import find_current_module
 
@@ -40,14 +39,9 @@ class SFLogger(Logger):
             else:
                 extra['origin'] = 'unknown'
 
-        if PY3:
-            return Logger.makeRecord(self, name, level, pathname, lineno, msg,
-                                     args, exc_info, func=func, extra=extra,
-                                     sinfo=sinfo)
-        else:
-            return Logger.makeRecord(self, name, level, pathname, lineno, msg,
-                                     args, exc_info, func=func, extra=extra)
-
+        return Logger.makeRecord(self, name, level, pathname, lineno, msg,
+                                    args, exc_info, func=func, extra=extra,
+                                    sinfo=sinfo)
 
 logging.setLoggerClass(SFLogger)
 logger = logging.getLogger('superfreq')
