@@ -19,14 +19,7 @@ The documentation is `available here`_.
 Installation
 ------------
 
-``SuperFreq`` is easily installed via ``pip``. To install the latest stable
-version:
-
-.. code:: bash
-
-    pip install superfreq
-
-To install the latest development version:
+``SuperFreq`` is easily installed via ``pip``. To install the latest version:
 
 .. code:: bash
 
