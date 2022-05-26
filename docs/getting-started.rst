@@ -24,8 +24,9 @@ array, one for the orbit itself):
 
 We'll assume the time array, ``t``, is a 1D Numpy array, and the orbit array,
 ``w``, is a 2D array with shape equal to ``(ntimes, ndim)`` where ``ndim`` is
-the phase-space dimensionality. We next create a :class:`~superfreq.SuperFreq`
-object by passing in the array of times to the initializer:
+the phase-space dimensionality (e.g. :math:`x,y,z,v_x,v_y,v_z`). We next 
+create a :class:`~superfreq.SuperFreq` object by passing in the array of times
+ to the initializer:
 
 .. code-block:: python
 
@@ -48,7 +49,8 @@ We can now run the frequency solver on this list of arrays:
 
 .. code-block:: python
 
-   freqs, tbl, ix = sf.find_fundamental_frequencies(fs)
+   result_obj = sf.find_fundamental_frequencies(fs)
+   freqs = result_obj.fund_freqs
 
-In the returned variables above, ``freqs`` will contain the fundamental
+The variable ``freqs`` will contain the fundamental
 frequencies.
