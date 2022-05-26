@@ -28,7 +28,7 @@ Development repository
 The latest development version of superfreq can be cloned from
 `GitHub <https://github.com/>`_ using git::
 
-   git clone git://github.com/adrn/superfreq.git
+   git clone https://github.com/adrn/superfreq
 
 Building and Installing
 -----------------------
